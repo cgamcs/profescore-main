@@ -33,9 +33,6 @@ const ProfessorDetail = () => {
     const [captchaError, setCaptchaError] = useState('');
     const [, setError] = useState('');
     const [searchParams] = useSearchParams();
-    const ratingSuccess = searchParams.get('ratingSuccess') === 'true';
-    const addSuccess = searchParams.get('addSuccess') === 'true';
-    const [showSuccessMessage, setShowSuccessMessage] = useState(ratingSuccess || addSuccess);
 
     const SITE_KEY = import.meta.env.VITE_SITE_KEY || '';
 
