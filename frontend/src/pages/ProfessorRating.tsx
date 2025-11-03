@@ -125,7 +125,7 @@ const ProfessorRating = () => {
 
       if (response.status === 201) {
         // Redirigir a la página del profesor con mensaje de éxito
-        navigate(`facultad/${facultyId}/maestro/${professorId}?ratingSuccess=true`);
+        navigate(`/facultad/${facultyId}/maestro/${professorId}?ratingSuccess=true`);
       }
     } catch (error) {
       console.log(error);
