@@ -73,11 +73,10 @@ const ProfessorDetail = () => {
                 queryKey: ['professor', facultyId, professorId]
             });
 
-            const timer = setTimeout(() => {
-                setShowSuccessMessage(false);
-            }, 5000); // Ocultar el mensaje después de 5 segundos
-
-            return () => clearTimeout(timer);
+            toast({
+                title: 'Éxito',
+                description: addSuccess ? 'Profesor agregado correctamente' : 'Calificación enviada correctamente',
+            });
         }
     }, [ratingSuccess, addSuccess, queryClient, facultyId, professorId]);
 
@@ -206,13 +205,7 @@ const ProfessorDetail = () => {
                 { commentId: selectedComment?._id, reasons: [reason], reportComment: details || undefined, captcha: captchaValue }
             );
 
-            if (res.status === 201) {
-                toast({
-                    title: 'Éxito',
-                    description: 'Reporte enviado exitosamente'
-                });
-                closeReportModal();
-            }
+            
         } catch (error) {
             console.error('Error al enviar el reporte:', error);
             toast({
@@ -265,11 +258,6 @@ const ProfessorDetail = () => {
     return (
         <>
             <main id="main-content" data-view-transition className="container mx-auto px-4 py-6">
-                {showSuccessMessage && (
-                    <div className="fixed top-15 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg notification z-10">
-                        {addSuccess ? 'Profesor agregado correctamente' : 'Calificación enviada correctamente'}
-                    </div>
-                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-1">
                         <div className="bg-indigo-600 dark:bg-[#202024] text-white p-6 rounded-lg shadow-md mb-6">
