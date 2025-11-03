@@ -125,10 +125,10 @@ useEffect(() => {
       </div>
 
       {/* Lista de materias y profesores con altura fija durante transiciones */}
-      <div
+      <div 
         ref={subjectsContainerRef}
         className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm overflow-hidden transition-all"
-        style={{
+        style={{ 
           minHeight: containerHeight ? `${containerHeight}px` : '300px'
         }}
       >

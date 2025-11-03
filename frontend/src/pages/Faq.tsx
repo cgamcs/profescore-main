@@ -90,7 +90,7 @@ const Faq: React.FC = () => {
                             }
                         >Preguntas Frecuentes</NavLink>
                         <NavLink
-                            to="/privacity"
+                            to="/privacy"
                             className={({ isActive }) =>
                                 `text-sm ${isActive ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-600 dark:text-white'}`
                             }
@@ -111,7 +111,7 @@ const Faq: React.FC = () => {
                                 }
                             >Preguntas Frecuentes</NavLink>
                             <NavLink
-                                to="/privacity"
+                                to="/privacy"
                                 className={({ isActive }) =>
                                     `text-sm ${isActive ? 'text-indigo-600 font-medium dark:text-indigo-400' : 'text-gray-600 dark:text-white'}`
                                 }
@@ -124,7 +124,7 @@ const Faq: React.FC = () => {
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-12">
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Preguntas Frecuentes</h1>
-                        <p className="text-lg text-gray-600 dark:text-gray-400">Encuentra respuestas a las preguntas más comunes sobre RATE</p>
+                        <p className="text-lg text-gray-600 dark:text-gray-400">Encuentra respuestas a las preguntas más comunes sobre ProfeScore</p>
                     </div>
                     <div className="mb-8">
                         <div className="relative">
@@ -201,7 +201,7 @@ const Faq: React.FC = () => {
 
                     <div className="flex md:gap-4">
                         <Link to="/faq" className="link">Preguntas Frecuentes</Link>
-                        <Link to="/privacity" className="link">Términos de Privacidad</Link>
+                        <Link to="/privacy" className="link">Términos de Privacidad</Link>
                     </div>
 
                 </div>

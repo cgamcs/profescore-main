@@ -14,7 +14,7 @@ const LayoutWithHeader = () => {
 
           <div className="flex md:gap-4">
             <Link to="/faq" className="link">Preguntas Frecuentes</Link>
-            <Link to="/privacity" className="link">Términos de Privacidad</Link>
+            <Link to="/privacy" className="link">Términos de Privacidad</Link>
           </div>
 
         </div>

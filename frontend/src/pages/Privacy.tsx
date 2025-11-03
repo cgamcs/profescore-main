@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useParams } from 'react-router-dom';
 
-const Privacity: React.FC = () => {
+const Privacy: React.FC = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const { facultyId } = useParams<{ facultyId?: string }>();
     return (
@@ -28,7 +28,7 @@ const Privacity: React.FC = () => {
                             }
                         >Preguntas Frecuentes</NavLink>
                         <NavLink
-                            to="/privacity"
+                            to="/privacy"
                             className={({ isActive }) =>
                                 `text-sm ${isActive ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-600 dark:text-white'}`
                             }
@@ -49,7 +49,7 @@ const Privacity: React.FC = () => {
                                 }
                             >Preguntas Frecuentes</NavLink>
                             <NavLink
-                                to="/privacity"
+                                to="/privacy"
                                 className={({ isActive }) =>
                                     `text-sm ${isActive ? 'text-indigo-600 font-medium dark:text-indigo-400' : 'text-gray-600 dark:text-white'}`
                                 }
@@ -257,7 +257,7 @@ const Privacity: React.FC = () => {
 
                     <div className="flex md:gap-4">
                         <Link to="/faq" className="link">Preguntas Frecuentes</Link>
-                        <Link to="/privacity" className="link">Términos de Privacidad</Link>
+                        <Link to="/privacy" className="link">Términos de Privacidad</Link>
                     </div>
 
                 </div>
@@ -266,4 +266,4 @@ const Privacity: React.FC = () => {
     );
 };
 
-export default Privacity;
+export default Privacy;

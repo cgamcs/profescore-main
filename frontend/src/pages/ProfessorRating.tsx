@@ -125,7 +125,7 @@ const ProfessorRating = () => {
 
       if (response.status === 201) {
         // Redirigir a la página del profesor con mensaje de éxito
-        navigate(`/profesor/${professorId}?ratingSuccess=true`);
+        navigate(`facultad/${facultyId}/maestro/${professorId}?ratingSuccess=true`);
       }
     } catch (error) {
       console.log(error);
@@ -149,7 +149,7 @@ const ProfessorRating = () => {
 
       // En ambos componentes, añadir este useEffect
       useEffect(() => {
-        document.title = `ProfeScore - Califcación`;
+        document.title = `ProfeScore - Calificación`;
 
         const mainElement = document.getElementById('main-content');
         if (mainElement) {

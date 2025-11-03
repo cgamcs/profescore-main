@@ -17,7 +17,7 @@ import AdminSubjects from './pages/admin/Subjects';
 import AdminProfessors from './pages/admin/Professors';
 import Unauthorized from './components/401/Unauthorized';
 import Faq from './pages/Faq';
-import Privacity from './pages/Privacity';
+import Privacy from './pages/Privacy';
 import AdminReports from './pages/admin/Reports';
 import HomePage from './layouts/HomePage'; // Importa el nuevo componente
 
@@ -94,7 +94,7 @@ const App: React.FC = () => {
         </Route>
 
         <Route path='/faq' element={<Faq />}></Route>
-        <Route path='/privacity' element={<Privacity />}></Route>
+        <Route path='/privacy' element={<Privacy />}></Route>
 
         <Route element={<LayoutWithHeader />}>
           <Route path='/401' element={<Unauthorized />}></Route>

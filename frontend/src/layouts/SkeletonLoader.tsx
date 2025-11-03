@@ -138,11 +138,23 @@ const SubjectPageLoader = () => {
                 <div className="bg-gray-200 dark:bg-[#383939] h-12 w-full rounded-xl animate-pulse"></div>
             </div>
 
-            <div className="border border-gray-200 dark:border-[#383939] rounded-lg overflow-hidden">
-                <div className="bg-gray-50 dark:bg-indigo-600 h-10"></div>
-                {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-12 border-b border-gray-200 dark:border-[#383939] bg-gray-200 dark:bg-[#202024] animate-pulse"></div>
-                ))}
+            {/* Lista de materias y profesores */}
+            <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm overflow-hidden">
+                <ul className="divide-y divide-gray-200 dark:divide-[#383939]">
+                    {[...Array(5)].map((_, i) => (
+                        <li key={i}>
+                            <div className="block hover:bg-gray-50 dark:hover:bg-[#ffffff0d] p-4">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="bg-gray-200 dark:bg-[#383939] h-6 w-40 rounded-md animate-pulse"></div>
+                                        <div className="bg-gray-200 dark:bg-[#383939] h-4 w-24 rounded-md animate-pulse mt-2"></div>
+                                    </div>
+                                    <div className="bg-gray-200 dark:bg-[#383939] h-4 w-16 rounded-md animate-pulse"></div>
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
             </div>
         </main>
     );
@@ -180,7 +192,7 @@ const SubjectDetailLoader = () => {
             {/* Teachers List Skeleton */}
             <div className="bg-gray-200 dark:bg-[#383939] h-8 w-1/2 rounded-lg mb-4 animate-pulse"></div>
             <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm overflow-hidden">
-                <div className="bg-gray-20 dark:bg-[#383939]0 h-10 w-full rounded-lg animate-pulse mb-2"></div>
+                <div className="bg-gray-200 dark:bg-[#383939] h-10 w-full rounded-lg animate-pulse mb-2"></div>
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="bg-gray-200 dark:bg-[#383939] h-16 w-full rounded-lg animate-pulse mb-2"></div>
                 ))}
@@ -257,7 +269,7 @@ const ProfessorDetailLoader = () => {
                     {/* Columna derecha */}
                     <div className="md:col-span-2">
                         <div>
-                            <div className="bg-gray-20 dark:bg-[#383939] h-8 rounded-lg mb-4 animate-pulse"></div>
+                            <div className="bg-gray-200 dark:bg-[#383939] h-8 rounded-lg mb-4 animate-pulse"></div>
                             <div className="space-y-4">
                                 {[...Array(3)].map((_, i) => (
                                     <div key={i} className="bg-gray-200 dark:bg-[#383939] h-32 rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm animate-pulse"></div>

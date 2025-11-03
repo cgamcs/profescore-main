@@ -14,7 +14,7 @@ const AdminWithHeader = () => {
 
           <div className="flex gap-4 dark:text-white">
             <Link to="/faq" className="link">Preguntas Frecuentes</Link>
-            <Link to="/privacity" className="link">Términos de Privacidad</Link>
+            <Link to="/privacy" className="link">Términos de Privacidad</Link>
           </div>
 
         </div>
