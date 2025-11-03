@@ -33,6 +33,8 @@ const ProfessorDetail = () => {
     const [captchaError, setCaptchaError] = useState('');
     const [, setError] = useState('');
     const [searchParams] = useSearchParams();
+    const ratingSuccess = searchParams.get('ratingSuccess') === 'true';
+    const addSuccess = searchParams.get('addSuccess') === 'true';
 
     const SITE_KEY = import.meta.env.VITE_SITE_KEY || '';
 
@@ -75,7 +77,7 @@ const ProfessorDetail = () => {
                 description: addSuccess ? 'Profesor agregado correctamente' : 'Calificación enviada correctamente',
             });
         }
-    }, [ratingSuccess, addSuccess, queryClient, facultyId, professorId]);
+    }, [ratingSuccess, addSuccess, queryClient, facultyId, professorId, toast]);
 
     // Control de desplazamiento cuando el modal está abierto
     useEffect(() => {
@@ -202,7 +204,13 @@ const ProfessorDetail = () => {
                 { commentId: selectedComment?._id, reasons: [reason], reportComment: details || undefined, captcha: captchaValue }
             );
 
-            
+            if (res.status === 201) {
+                toast({
+                    title: 'Éxito',
+                    description: 'Reporte enviado exitosamente'
+                });
+                closeReportModal();
+            }
         } catch (error) {
             console.error('Error al enviar el reporte:', error);
             toast({
