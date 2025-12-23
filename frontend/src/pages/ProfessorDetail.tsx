@@ -326,7 +326,7 @@ const ProfessorDetail = () => {
                             {/* Mapeo de reseñas aplanadas */}
                             {ratings.map((rating: RatingType) => (
                                 <div key={rating._id} className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-4">
-                                    <div className="flex justify-between items-start mb-2">
+                                    <div className="flex justify-between items-start mb-3">
                                         <div>
                                             {renderCommentStars(rating.general)}
                                             <p className="text-sm text-gray-500 dark:text-gray-300/70 mt-1">
@@ -337,9 +337,8 @@ const ProfessorDetail = () => {
                                             {new Date(rating.createdAt).toLocaleDateString()}
                                         </div>
                                     </div>
-                                    <p className="text-gray-700 dark:text-white mb-2">{rating.comment}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-300/70 mb-2">A {rating.likes.length} personas les resultó útil</p>
-                                    <div className="flex items-center gap-5">
+                                    <p className="text-gray-700 dark:text-white mb-4">{rating.comment}</p>
+                                    <div className={`flex items-center ${rating.likes.length > 0 ? 'gap-4' : 'gap-2'}`}>
                                         <LikeButton
                                             isLiked={rating.likes.includes(userId)}
                                             likeCount={rating.likes.length}
