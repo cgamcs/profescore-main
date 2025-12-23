@@ -50,31 +50,29 @@ const FacultyDetails = () => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // 2. QUERY OPTIMIZADO PARA MATERIAS
-    // Agregamos <ISubject[]> para decirle a TS que esto devuelve un array de materias
+    // 2. QUERY OPTIMIZADO PARA MATERIAS (DASHBOARD)
     const { data: subjects = [], isLoading: subjectsLoading } = useQuery<ISubject[]>({
-        queryKey: ['subjects', facultyId, debouncedSearch], 
+        // AGREGAMOS 'dashboard' AQUÍ
+        queryKey: ['subjects', facultyId, 'dashboard', debouncedSearch], 
         queryFn: () => api.get(`/faculties/${facultyId}/subjects`, {
             params: {
                 search: debouncedSearch,
                 limit: debouncedSearch ? 20 : 6 
             }
         }).then(res => res.data),
-        // CORRECCIÓN V5: Usar placeholderData en lugar de keepPreviousData: true
         placeholderData: keepPreviousData 
     });
 
-    // 3. QUERY OPTIMIZADO PARA PROFESORES
-    // Agregamos <IProfessor[]> para tipar la respuesta
+    // 3. QUERY OPTIMIZADO PARA PROFESORES (DASHBOARD)
     const { data: professors = [], isLoading: professorsLoading } = useQuery<IProfessor[]>({
-        queryKey: ['professors', facultyId, debouncedSearch],
+        // AGREGAMOS 'dashboard' AQUÍ
+        queryKey: ['professors', facultyId, 'dashboard', debouncedSearch],
         queryFn: () => api.get(`/faculties/${facultyId}/professors`, {
             params: {
                 search: debouncedSearch,
                 limit: debouncedSearch ? 20 : 3
             }
         }).then(res => res.data),
-        // CORRECCIÓN V5
         placeholderData: keepPreviousData
     });
 
