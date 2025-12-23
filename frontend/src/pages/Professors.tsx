@@ -149,11 +149,7 @@ const ProfessorsPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
                                             <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#2B2B2D] px-3 py-1.5 rounded-full border border-gray-100 dark:border-[#383939]">
-                                                <span className={`font-bold text-sm ${
-                                                    professor.ratingStats.averageGeneral >= 4 ? 'text-green-600 dark:text-green-400' : 
-                                                    professor.ratingStats.averageGeneral >= 3 ? 'text-yellow-600 dark:text-yellow-400' : 
-                                                    'text-red-600 dark:text-red-400'
-                                                }`}>
+                                                <span className={`font-bold text-sm text-white`}>
                                                 {professor.ratingStats.averageGeneral.toFixed(1)}
                                                 </span>
                                                 {renderStars(professor.ratingStats.averageGeneral)}

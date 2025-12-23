@@ -30,7 +30,7 @@ interface IProfessor {
 const FacultyDetails = () => {
     const { facultyId } = useParams();
     const { handleLinkClick } = useViewTransition();
-    
+
     // Estados para la búsqueda
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -53,14 +53,14 @@ const FacultyDetails = () => {
     // 2. QUERY OPTIMIZADO PARA MATERIAS (DASHBOARD)
     const { data: subjects = [], isLoading: subjectsLoading } = useQuery<ISubject[]>({
         // AGREGAMOS 'dashboard' AQUÍ
-        queryKey: ['subjects', facultyId, 'dashboard', debouncedSearch], 
+        queryKey: ['subjects', facultyId, 'dashboard', debouncedSearch],
         queryFn: () => api.get(`/faculties/${facultyId}/subjects`, {
             params: {
                 search: debouncedSearch,
-                limit: debouncedSearch ? 20 : 6 
+                limit: debouncedSearch ? 20 : 6
             }
         }).then(res => res.data),
-        placeholderData: keepPreviousData 
+        placeholderData: keepPreviousData
     });
 
     // 3. QUERY OPTIMIZADO PARA PROFESORES (DASHBOARD)
@@ -79,24 +79,24 @@ const FacultyDetails = () => {
     useEffect(() => {
         document.title = "ProfeScore - Facultad";
         const prepareTransition = () => {
-          const root = document.documentElement;
-          root.style.viewTransitionName = 'root';
-          root.style.animation = 'none';
-          const mainElement = document.getElementById('main-content');
-          if (mainElement) {
-            mainElement.style.viewTransitionName = 'main-content';
-            mainElement.style.contain = 'layout';
-          }
+            const root = document.documentElement;
+            root.style.viewTransitionName = 'root';
+            root.style.animation = 'none';
+            const mainElement = document.getElementById('main-content');
+            if (mainElement) {
+                mainElement.style.viewTransitionName = 'main-content';
+                mainElement.style.contain = 'layout';
+            }
         };
         prepareTransition();
         return () => {
-          const root = document.documentElement;
-          root.style.viewTransitionName = '';
-          const mainElement = document.getElementById('main-content');
-          if (mainElement) {
-            mainElement.style.viewTransitionName = '';
-            mainElement.style.contain = '';
-          }
+            const root = document.documentElement;
+            root.style.viewTransitionName = '';
+            const mainElement = document.getElementById('main-content');
+            if (mainElement) {
+                mainElement.style.viewTransitionName = '';
+                mainElement.style.contain = '';
+            }
         };
     }, []);
 
@@ -146,7 +146,7 @@ const FacultyDetails = () => {
 
             {/* Lógica de Renderizado condicional para Búsqueda Combinada */}
             {/* Si NO buscamos, mostramos ambas tablas. Si buscamos, mostramos lo que haya encontrado la API */}
-            
+
             {/* Sección de Materias (Se oculta si buscas un profesor y la API devuelve 0 materias, lógica opcional) */}
             {(!isSearching || subjects.length > 0) && (
                 <section className="mb-12">
@@ -154,8 +154,8 @@ const FacultyDetails = () => {
                         {isSearching ? `Materias encontradas` : 'Tabla de Materias'}
                     </h2>
                     {subjectsLoading ? <FacultyDetailLoader /> : (
-                         <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm transition-all"
-                              style={{ minHeight: subjectsHeight ? `${subjectsHeight}px` : 'auto' }}>
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm transition-all"
+                            style={{ minHeight: subjectsHeight ? `${subjectsHeight}px` : 'auto' }}>
                             <table ref={subjectsContainerRef} className="min-w-full divide-y divide-gray-200 dark:divide-[#383939]">
                                 <thead className="bg-gray-50 dark:bg-indigo-600">
                                     <tr>
@@ -168,7 +168,7 @@ const FacultyDetails = () => {
                                         <tr key={subject._id} className="hover:bg-gray-50 dark:hover:bg-[#ffffff0d]">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-white">
                                                 <a href={`/facultad/${facultyId}/materia/${subject._id}`}
-                                                   onClick={(e) => handleLinkClick(`/facultad/${facultyId}/materia/${subject._id}`, e)}>
+                                                    onClick={(e) => handleLinkClick(`/facultad/${facultyId}/materia/${subject._id}`, e)}>
                                                     {subject.name}
                                                 </a>
                                             </td>
@@ -194,28 +194,26 @@ const FacultyDetails = () => {
                         {isSearching ? `Profesores encontrados` : 'Maestros Mejor Calificados'}
                     </h2>
                     {professorsLoading ? <FacultyDetailLoader /> : (
-                        <div ref={professorsContainerRef} 
-                             className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all"
-                             style={{ minHeight: professorsHeight ? `${professorsHeight}px` : 'auto' }}>
+                        <div ref={professorsContainerRef}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all"
+                            style={{ minHeight: professorsHeight ? `${professorsHeight}px` : 'auto' }}>
                             {professors.map((professor: IProfessor) => (
                                 <a key={professor._id}
-                                   href={`/facultad/${facultyId}/maestro/${professor._id}`}
-                                   onClick={(e) => handleLinkClick(`/facultad/${facultyId}/maestro/${professor._id}`, e)}
-                                   className="block">
-                                    <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 hover:shadow-md transition-shadow">
+                                    href={`/facultad/${facultyId}/maestro/${professor._id}`}
+                                    onClick={(e) => handleLinkClick(`/facultad/${facultyId}/maestro/${professor._id}`, e)}
+                                    className="block">
+                                    <div className="flex justify-between flex-col md:flex-row gap-2 md:gap-0 bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 hover:shadow-md transition-shadow">
                                         <h3 className="font-medium dark:text-white text-lg mb-1">{professor.name}</h3>
+
                                         <div className="flex items-center">
                                             <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#2B2B2D] px-3 py-1.5 rounded-full border border-gray-100 dark:border-[#383939]">
-                                                <span className={`font-bold text-sm ${
-                                                    professor.ratingStats.averageGeneral >= 4 ? 'text-green-600 dark:text-green-400' : 
-                                                    professor.ratingStats.averageGeneral >= 3 ? 'text-yellow-600 dark:text-yellow-400' : 
-                                                    'text-red-600 dark:text-red-400'
-                                                }`}>
-                                                {professor.ratingStats.averageGeneral.toFixed(1)}
+                                                <span className='font-bold text-sm text-white'>
+                                                    {professor.ratingStats.averageGeneral.toFixed(1)}
                                                 </span>
                                                 {renderStars(professor.ratingStats.averageGeneral)}
                                             </div>
                                         </div>
+                                        
                                     </div>
                                 </a>
                             ))}
