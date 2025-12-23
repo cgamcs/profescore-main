@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'; // Importar useInfiniteQuery
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { FaRegStar, FaStar, FaStarHalfAlt, FaHeart, FaRegHeart } from 'react-icons/fa';
 import api from '../api';
@@ -21,6 +21,13 @@ interface Subject {
     name: string;
 }
 
+// Interfaz para la respuesta paginada
+interface RatingsResponse {
+    ratings: RatingType[];
+    nextPage?: number;
+    total: number;
+}
+
 const ProfessorDetail = () => {
     const { facultyId, professorId } = useParams();
     const queryClient = useQueryClient();
@@ -38,16 +45,32 @@ const ProfessorDetail = () => {
 
     const SITE_KEY = import.meta.env.VITE_SITE_KEY || '';
 
+    // Query del Profesor (Se mantiene igual, carga rápido porque es solo 1 documento)
     const { data: professor, isLoading: professorLoading } = useQuery({
         queryKey: ['professor', facultyId, professorId],
         queryFn: () => api.get(`/faculties/${facultyId}/professors/${professorId}`).then(res => res.data),
         staleTime: 5 * 60 * 1000
     });
 
-    const { data: ratings = [], isLoading: ratingsLoading } = useQuery({
+    // Query de Reseñas (CAMBIO A INFINITE QUERY)
+    const { 
+        data: ratingsData, 
+        isLoading: ratingsLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
+    } = useInfiniteQuery<RatingsResponse>({
         queryKey: ['ratings', facultyId, professorId],
-        queryFn: () => api.get(`/faculties/${facultyId}/professors/${professorId}/ratings`).then(res => res.data),
+        queryFn: ({ pageParam = 1 }) => 
+            api.get(`/faculties/${facultyId}/professors/${professorId}/ratings`, {
+                params: { page: pageParam, limit: 10 } // Pedimos de 10 en 10
+            }).then(res => res.data),
+        getNextPageParam: (lastPage) => lastPage.nextPage,
+        initialPageParam: 1
     });
+
+    // Aplanamos las páginas en un solo array de reseñas
+    const ratings = ratingsData?.pages.flatMap(page => page.ratings) || [];
 
     const isLoading = professorLoading || ratingsLoading;
 
@@ -68,9 +91,9 @@ const ProfessorDetail = () => {
 
     useEffect(() => {
         if (ratingSuccess || addSuccess) {
-            queryClient.invalidateQueries({
-                queryKey: ['professor', facultyId, professorId]
-            });
+            // Invalidamos ambas queries para refrescar datos
+            queryClient.invalidateQueries({ queryKey: ['professor', facultyId, professorId] });
+            queryClient.invalidateQueries({ queryKey: ['ratings', facultyId, professorId] });
 
             toast({
                 title: 'Éxito',
@@ -79,20 +102,14 @@ const ProfessorDetail = () => {
         }
     }, [ratingSuccess, addSuccess, queryClient, facultyId, professorId, toast]);
 
-    // Control de desplazamiento cuando el modal está abierto
+    // Control de desplazamiento
     useEffect(() => {
         if (showReportModal) {
-            // Bloquear el desplazamiento cuando el modal está abierto
             document.body.style.overflow = 'hidden';
         } else {
-            // Restaurar el desplazamiento cuando el modal está cerrado
             document.body.style.overflow = 'auto';
         }
-
-        // Limpiar efecto al desmontar
-        return () => {
-            document.body.style.overflow = 'auto';
-        };
+        return () => { document.body.style.overflow = 'auto'; };
     }, [showReportModal]);
 
     const renderStars = (rating: number) => {
@@ -137,10 +154,9 @@ const ProfessorDetail = () => {
             );
 
             if (res.status === 200) {
-                const updatedRatings = ratings.map((rating: RatingType) =>
-                    rating._id === ratingId ? res.data : rating
-                );
-                queryClient.setQueryData(['ratings', facultyId, professorId], updatedRatings);
+                // Actualización optimista manual es compleja con Infinite Query
+                // Lo más seguro y fácil es invalidar la query
+                queryClient.invalidateQueries({ queryKey: ['ratings', facultyId, professorId] });
                 setCaptchaValue('');
             }
         } catch (error) {
@@ -148,113 +164,55 @@ const ProfessorDetail = () => {
         }
     };
 
+    // ... (El resto de funciones handleCaptchaChange, openReportModal, closeReportModal, handleReport, useEffects de titulo y ESC se quedan IGUAL) ...
+    // Copia y pega esas funciones aquí, no cambian.
     const handleCaptchaChange = (value: string | null) => {
-        if (value) {
-            setCaptchaValue(value);
-            setCaptchaError('');
-        } else {
-            setCaptchaValue('');
-        }
+        if (value) { setCaptchaValue(value); setCaptchaError(''); } else { setCaptchaValue(''); }
     };
 
     const openReportModal = (comment: RatingType) => {
         setSelectedComment(comment);
         setShowReportModal(true);
         setIsClosing(false);
-        // Agregar un timeout para que el estado del formulario se resetee
-        setTimeout(() => {
-            if (document.getElementById('report-form')) {
-                (document.getElementById('report-form') as HTMLFormElement).reset();
-            }
-        }, 100);
+        setTimeout(() => { if (document.getElementById('report-form')) (document.getElementById('report-form') as HTMLFormElement).reset(); }, 100);
     };
 
     const closeReportModal = () => {
-        // Iniciar animación de cierre
         setIsClosing(true);
-
-        // Esperar a que termine la animación antes de ocultar completamente
-        setTimeout(() => {
-            setSelectedComment(null);
-            setShowReportModal(false);
-            setCaptchaValue('');
-            setCaptchaError('');
-            setIsClosing(false);
-        }, 300); // Tiempo de la animación
+        setTimeout(() => { setSelectedComment(null); setShowReportModal(false); setCaptchaValue(''); setCaptchaError(''); setIsClosing(false); }, 300);
     };
 
     const handleReport = async (event: React.FormEvent) => {
         event.preventDefault();
         const reason = (document.getElementById('report-reason') as HTMLSelectElement).value;
         const details = (document.getElementById('report-details') as HTMLTextAreaElement).value;
-
-        if (!reason) {
-            setError('Por favor selecciona un motivo de reporte');
-            return;
-        }
-
-        if (!captchaValue) {
-            setCaptchaError('Por favor completa el CAPTCHA');
-            return;
-        }
-
+        if (!reason) { setError('Por favor selecciona un motivo de reporte'); return; }
+        if (!captchaValue) { setCaptchaError('Por favor completa el CAPTCHA'); return; }
         try {
             const res = await api.post(
                 `/faculties/${facultyId}/professors/${professorId}/ratings/${selectedComment?._id}/report`,
                 { commentId: selectedComment?._id, reasons: [reason], reportComment: details || undefined, captcha: captchaValue }
             );
-
             if (res.status === 201) {
-                toast({
-                    title: 'Éxito',
-                    description: 'Reporte enviado exitosamente'
-                });
+                toast({ title: 'Éxito', description: 'Reporte enviado exitosamente' });
                 closeReportModal();
             }
         } catch (error) {
-            console.error('Error al enviar el reporte:', error);
-            toast({
-                title: 'Error',
-                description: 'Error al enviar el reporte. Por favor, inténtalo de nuevo.',
-                variant: 'destructive'
-            });
+            toast({ title: 'Error', description: 'Error al enviar el reporte.', variant: 'destructive' });
         }
     };
 
-    // En ambos componentes, añadir este useEffect
     useEffect(() => {
         document.title = "ProfeScore - Maestros";
-
         const mainElement = document.getElementById('main-content');
-        if (mainElement) {
-            mainElement.style.viewTransitionName = 'main-content';
-            mainElement.style.contain = 'layout';
-        }
-
-        return () => {
-            const mainElement = document.getElementById('main-content');
-            if (mainElement) {
-                mainElement.style.viewTransitionName = '';
-                mainElement.style.contain = '';
-            }
-        };
+        if (mainElement) { mainElement.style.viewTransitionName = 'main-content'; mainElement.style.contain = 'layout'; }
+        return () => { const mainElement = document.getElementById('main-content'); if (mainElement) { mainElement.style.viewTransitionName = ''; mainElement.style.contain = ''; } };
     }, []);
 
-    // Manejador de tecla ESC para cerrar el modal
     useEffect(() => {
-        const handleEscKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && showReportModal) {
-                closeReportModal();
-            }
-        };
-
-        if (showReportModal) {
-            document.addEventListener('keydown', handleEscKey);
-        }
-
-        return () => {
-            document.removeEventListener('keydown', handleEscKey);
-        };
+        const handleEscKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && showReportModal) closeReportModal(); };
+        if (showReportModal) document.addEventListener('keydown', handleEscKey);
+        return () => document.removeEventListener('keydown', handleEscKey);
     }, [showReportModal]);
 
     if (isLoading) return <ProfessorDetailLoader />;
@@ -265,6 +223,7 @@ const ProfessorDetail = () => {
             <main id="main-content" data-view-transition className="container mx-auto px-4 py-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-1">
+                        {/* ... (Toda la tarjeta de estadísticas del profesor se queda IGUAL) ... */}
                         <div className="bg-indigo-600 dark:bg-[#202024] text-white p-6 rounded-lg shadow-md mb-6">
                             <div className="text-3xl font-bold mb-2">
                                 {professor.ratingStats.averageGeneral.toFixed(1)}
@@ -278,36 +237,22 @@ const ProfessorDetail = () => {
                         </div>
 
                         <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 mb-6">
+                            {/* Barras de progreso */}
                             <div className="mb-1 dark:text-white font-medium">Explicación</div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
-                                <div
-                                    className="bg-indigo-600 h-1.5 rounded-full"
-                                    style={{ width: `${(professor.ratingStats.averageExplanation / 5) * 100}%` }}
-                                ></div>
+                                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageExplanation / 5) * 100}%` }}></div>
                             </div>
-
                             <div className="mb-1 dark:text-white font-medium">Accesible</div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
-                                <div
-                                    className="bg-indigo-600 h-1.5 rounded-full"
-                                    style={{ width: `${(professor.ratingStats.averageAccessibility / 5) * 100}%` }}
-                                ></div>
+                                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageAccessibility / 5) * 100}%` }}></div>
                             </div>
-
                             <div className="mb-1 dark:text-white font-medium">Dificultad</div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
-                                <div
-                                    className="bg-indigo-600 h-1.5 rounded-full"
-                                    style={{ width: `${(professor.ratingStats.averageDifficulty / 5) * 100}%` }}
-                                ></div>
+                                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageDifficulty / 5) * 100}%` }}></div>
                             </div>
-
                             <div className="mb-1 dark:text-white font-medium">Asistencia</div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
-                                <div
-                                    className="bg-indigo-600 h-1.5 rounded-full"
-                                    style={{ width: `${(professor.ratingStats.averageAttendance / 5) * 100}%` }}
-                                ></div>
+                                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageAttendance / 5) * 100}%` }}></div>
                             </div>
                         </div>
 
@@ -341,6 +286,7 @@ const ProfessorDetail = () => {
                     <div className="md:col-span-2">
                         <h2 className="dark:text-white font-semibold text-lg mb-4">Reseñas de Estudiantes</h2>
                         <div className="space-y-4">
+                            {/* Mapeo de reseñas aplanadas */}
                             {ratings.map((rating: RatingType) => (
                                 <div key={rating._id} className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-4">
                                     <div className="flex justify-between items-start mb-2">
@@ -380,6 +326,23 @@ const ProfessorDetail = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Botón de Cargar Más */}
+                        {hasNextPage && (
+                            <div className="mt-6 text-center">
+                                <button
+                                    onClick={() => fetchNextPage()}
+                                    disabled={isFetchingNextPage}
+                                    className="bg-white dark:bg-[#2B2B2D] border border-gray-300 dark:border-[#383939] text-gray-700 dark:text-white px-6 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-[#383939] transition-colors disabled:opacity-50"
+                                >
+                                    {isFetchingNextPage ? 'Cargando...' : 'Cargar más reseñas'}
+                                </button>
+                            </div>
+                        )}
+                        
+                        {!isLoading && ratings.length === 0 && (
+                             <p className="text-center text-gray-500 mt-10">Este profesor aún no tiene reseñas.</p>
+                        )}
                     </div>
                 </div>
 

@@ -79,12 +79,28 @@ export class RatingController {
   static getProfessorRatings = async (req: Request, res: Response) => {
     try {
       const { professorId } = req.params;
+      // 1. Obtener parámetros de paginación (default: página 1, 10 por página)
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
 
+      // 2. Consulta con paginación
       const ratings = await Rating.find({ professor: professorId })
         .populate('subject', 'name credits')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)     // Saltar los anteriores
+        .limit(limit);  // Traer solo el límite
 
-      res.json(ratings);
+      // 3. Contar total para saber si hay más páginas
+      const totalRatings = await Rating.countDocuments({ professor: professorId });
+      const hasNextPage = (skip + ratings.length) < totalRatings;
+
+      // 4. Devolver estructura paginada
+      res.json({
+        ratings,
+        nextPage: hasNextPage ? page + 1 : undefined,
+        total: totalRatings
+      });
     } catch (error) {
       res.status(500).json({ error: 'Error al obtener calificaciones' });
     }

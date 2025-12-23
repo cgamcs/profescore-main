@@ -205,10 +205,16 @@ const FacultyDetails = () => {
                                     <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 hover:shadow-md transition-shadow">
                                         <h3 className="font-medium dark:text-white text-lg mb-1">{professor.name}</h3>
                                         <div className="flex items-center">
-                                            <span className="bg-indigo-100 dark:bg-[#646464] text-indigo-800 dark:text-white font-bold rounded px-2 py-1 text-sm mr-2">
+                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#2B2B2D] px-3 py-1.5 rounded-full border border-gray-100 dark:border-[#383939]">
+                                                <span className={`font-bold text-sm ${
+                                                    professor.ratingStats.averageGeneral >= 4 ? 'text-green-600 dark:text-green-400' : 
+                                                    professor.ratingStats.averageGeneral >= 3 ? 'text-yellow-600 dark:text-yellow-400' : 
+                                                    'text-red-600 dark:text-red-400'
+                                                }`}>
                                                 {professor.ratingStats.averageGeneral.toFixed(1)}
-                                            </span>
-                                            {renderStars(professor.ratingStats.averageGeneral)}
+                                                </span>
+                                                {renderStars(professor.ratingStats.averageGeneral)}
+                                            </div>
                                         </div>
                                     </div>
                                 </a>
