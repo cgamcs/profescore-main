@@ -45,13 +45,13 @@ const Dashboard: React.FC = () => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const applyTheme = () => {
-        root.classList.toggle(
-            'dark',
-            theme === themeKeys.dark ||
-            (theme === themeKeys.system && mediaQuery.matches)
-        )
+      root.classList.toggle(
+        'dark',
+        theme === themeKeys.dark ||
+        (theme === themeKeys.system && mediaQuery.matches)
+      )
 
-        localStorage.setItem("theme", theme)
+      localStorage.setItem("theme", theme)
     };
 
     applyTheme();
@@ -61,51 +61,52 @@ const Dashboard: React.FC = () => {
     // Set view transition name for header
     const headerElement = document.getElementById('site-header');
     if (headerElement) {
-        headerElement.style.viewTransitionName = 'site-header';
+      headerElement.style.viewTransitionName = 'site-header';
     }
 
     return () => {
-        mediaQuery.removeEventListener("change", applyTheme)
+      mediaQuery.removeEventListener("change", applyTheme)
     };
-}, [theme]);
+  }, [theme]);
 
   useEffect(() => {
-    // Check for token and validate it
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/401');
       return;
     }
 
-    // Fetch dashboard statistics and recent activities
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Fetch stats
-        const statsResponse = await axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard-stats`, {
+        // Lanzamos ambas peticiones en paralelo al navegador
+        const statsPromise = axios.get(`${import.meta.env.VITE_API_URL}/admin/dashboard-stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Dashboard Stats:', statsResponse.data);
+
+        const activitiesPromise = axios.get(`${import.meta.env.VITE_API_URL}/admin/recent-activities`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Esperamos a ambas (o manejamos fallo individual si prefieres Promise.allSettled)
+        const [statsResponse, activitiesResponse] = await Promise.all([
+          statsPromise,
+          activitiesPromise
+        ]);
+
         setStats(statsResponse.data);
 
-        // Fetch recent activities
-        const activitiesResponse = await axios.get(`${import.meta.env.VITE_API_URL}/admin/recent-activities`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log('Raw Activities Response:', activitiesResponse.data);
-
-        // Ensure activities is an array and limit to last 5
         const activities = Array.isArray(activitiesResponse.data)
           ? activitiesResponse.data.slice(0, 5)
           : [];
-
-        console.log('Processed Activities:', activities);
         setRecentActivities(activities);
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        setError(error instanceof Error ? error.message : 'Un error desconocido ocurrió');
-        navigate('/401');
+        // Opcional: No redirigir si falla una sola cosa, pero por ahora mantenemos tu lógica
+        setError(error instanceof Error ? error.message : 'Error desconocido');
+        // navigate('/401'); // Comentado: A veces falla la red y no queremos sacar al admin por eso
       } finally {
         setLoading(false);
       }
@@ -139,7 +140,7 @@ const Dashboard: React.FC = () => {
   };
 
   // Handle loading and error states
-  if (loading) return  <div className="text-center py-8"><span className="loader"></span></div>;
+  if (loading) return <div className="text-center py-8"><span className="loader"></span></div>;
   if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
 
   return (

@@ -10,8 +10,16 @@ export interface IActivityLog extends Document {
   'CREATE_PROFESSOR' |
   'UPDATE_PROFESSOR' |
   'DELETE_PROFESSOR';
-  relatedEntity: Types.ObjectId;
-  onModel: 'Faculty' | 'Subject' | 'Professor';
+  onModel: {
+    type: String,
+    required: true,
+    enum: ['Faculty', 'Subject', 'Professor']
+  },
+  relatedEntity: {
+    type: Schema.Types.ObjectId,
+    required: true,
+    refPath: 'onModel' // <--- ESTO ES VITAL para que populate sepa qué modelo usar
+  }
   changes?: string;
   timestamp: Date;
 }

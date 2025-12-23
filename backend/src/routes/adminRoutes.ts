@@ -12,7 +12,7 @@ import { professorExists } from '../middleware/professor';
 import { DashboardController } from '../controllers/DashboardController';
 import { RatingController } from '../controllers/RatingController';
 
-const router = Router();
+const router: Router = Router();
 
 // --- Rutas de autenticación de Admin ---
 // Ruta pública para que crear un administrador
