@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'; // Importar useInfiniteQuery
+import { useQuery, useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query'; // Importar useInfiniteQuery
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { FaRegStar, FaStar, FaStarHalfAlt, FaHeart, FaRegHeart } from 'react-icons/fa';
 import api from '../api';
 import { ProfessorDetailLoader } from '../layouts/SkeletonLoader';
 import ReportModal from '../components/ReportModal';
 import { useToast } from '../hooks/use-toast';
+import LikeButton from '@/components/LikeButton';
 
 interface RatingType {
     _id: string;
@@ -53,15 +54,15 @@ const ProfessorDetail = () => {
     });
 
     // Query de Reseñas (CAMBIO A INFINITE QUERY)
-    const { 
-        data: ratingsData, 
+    const {
+        data: ratingsData,
         isLoading: ratingsLoading,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage
     } = useInfiniteQuery<RatingsResponse>({
         queryKey: ['ratings', facultyId, professorId],
-        queryFn: ({ pageParam = 1 }) => 
+        queryFn: ({ pageParam = 1 }) =>
             api.get(`/faculties/${facultyId}/professors/${professorId}/ratings`, {
                 params: { page: pageParam, limit: 10 } // Pedimos de 10 en 10
             }).then(res => res.data),
@@ -147,20 +148,56 @@ const ProfessorDetail = () => {
     };
 
     const handleLike = async (ratingId: string) => {
+        // 1. Cancelar cualquier refetch en curso para que no sobrescriba nuestra actualización optimista
+        await queryClient.cancelQueries({ queryKey: ['ratings', facultyId, professorId] });
+
+        // 2. Guardar el estado anterior (Snapshot) por si hay error y tenemos que volver atrás
+        const previousRatings = queryClient.getQueryData<InfiniteData<RatingsResponse>>(['ratings', facultyId, professorId]);
+
+        // 3. ACTUALIZACIÓN OPTIMISTA: Modificamos la caché manualmente YA MISMO
+        queryClient.setQueryData<InfiniteData<RatingsResponse>>(['ratings', facultyId, professorId], (oldData) => {
+            if (!oldData) return oldData;
+
+            return {
+                ...oldData,
+                pages: oldData.pages.map(page => ({
+                    ...page,
+                    ratings: page.ratings.map(rating => {
+                        if (rating._id === ratingId) {
+                            // Verificamos si ya tenía like del usuario
+                            const isLiked = rating.likes.includes(userId);
+                            return {
+                                ...rating,
+                                // Si ya tenía like, lo quitamos. Si no, lo agregamos.
+                                likes: isLiked
+                                    ? rating.likes.filter(id => id !== userId)
+                                    : [...rating.likes, userId]
+                            };
+                        }
+                        return rating;
+                    })
+                }))
+            };
+        });
+
+        // 4. Enviar la petición al servidor (en segundo plano)
         try {
-            const res = await api.post(
+            await api.post(
                 `/faculties/${facultyId}/professors/${professorId}/ratings/${ratingId}/vote`,
                 { type: 1, userId: userId, captcha: captchaValue }
             );
-
-            if (res.status === 200) {
-                // Actualización optimista manual es compleja con Infinite Query
-                // Lo más seguro y fácil es invalidar la query
-                queryClient.invalidateQueries({ queryKey: ['ratings', facultyId, professorId] });
-                setCaptchaValue('');
-            }
+            // No necesitamos invalidarQueries aquí, ya actualizamos la UI.
+            // Solo limpiamos el captcha si se usó.
+            setCaptchaValue('');
         } catch (error) {
             console.error('Error votando:', error);
+            // 5. ROLLBACK: Si falla, restauramos la copia de seguridad
+            queryClient.setQueryData(['ratings', facultyId, professorId], previousRatings);
+            toast({
+                title: 'Error',
+                description: 'No se pudo registrar tu voto',
+                variant: 'destructive'
+            });
         }
     };
 
@@ -303,19 +340,11 @@ const ProfessorDetail = () => {
                                     <p className="text-gray-700 dark:text-white mb-2">{rating.comment}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-300/70 mb-2">A {rating.likes.length} personas les resultó útil</p>
                                     <div className="flex items-center gap-5">
-                                        <button
-                                            className="flex items-center gap-2 border border-gray-200 dark:border-[#979797] rounded-full py-2 px-4 hover:cursor-pointer"
+                                        <LikeButton
+                                            isLiked={rating.likes.includes(userId)}
+                                            likeCount={rating.likes.length}
                                             onClick={() => handleLike(rating._id)}
-                                        >
-                                            {
-                                                rating.likes.includes(userId) ? (
-                                                    <FaHeart className="text-indigo-600 dark:text-indigo-400" />
-                                                ) : (
-                                                    <FaRegHeart className="text-gray-500 dark:text-[#979797]" />
-                                                )
-                                            }
-                                            <span className="text-sm text-gray-500 dark:text-[#979797]">Me gusta</span>
-                                        </button>
+                                        />
 
                                         <div className="border-l border-gray-200 dark:border-[#979797] pl-5">
                                             <div className="flex items-center gap-2">
@@ -339,9 +368,9 @@ const ProfessorDetail = () => {
                                 </button>
                             </div>
                         )}
-                        
+
                         {!isLoading && ratings.length === 0 && (
-                             <p className="text-center text-gray-500 mt-10">Este profesor aún no tiene reseñas.</p>
+                            <p className="text-center text-gray-500 mt-10">Este profesor aún no tiene reseñas.</p>
                         )}
                     </div>
                 </div>
