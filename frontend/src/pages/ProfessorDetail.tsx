@@ -334,7 +334,12 @@ const ProfessorDetail = () => {
                                             </p>
                                         </div>
                                         <div className="text-sm text-gray-500 dark:text-white">
-                                            {new Date(rating.createdAt).toLocaleDateString()}
+                                            {/* Usar toLocaleDateString asegura que se vea bien según el navegador del usuario */}
+                                            {new Date(rating.createdAt).toLocaleDateString('es-MX', {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
                                         </div>
                                     </div>
                                     <p className="text-gray-700 dark:text-white mb-4">{rating.comment}</p>
