@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query'; // Importar useInfiniteQuery
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { FaRegStar, FaStar, FaStarHalfAlt, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaRegStar, FaStar, FaStarHalfAlt } from 'react-icons/fa';
 import api from '../api';
 import { ProfessorDetailLoader } from '../layouts/SkeletonLoader';
 import ReportModal from '../components/ReportModal';
