@@ -171,27 +171,61 @@ export class ProfessorController {
 
     static getAllProfessorsWithDetails = async (req: Request, res: Response) => {
         try {
-            // Populate with type assertion to tell TypeScript about the expected structure
-            const professors = await Professor.find()
+            // 1. Obtener parámetros (default: página 1, 10 items)
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const search = req.query.search as string || '';
+            const skip = (page - 1) * limit;
+
+            // 2. Construir filtro de búsqueda
+            let query: any = {};
+            if (search) {
+                // Buscamos por nombre (case insensitive)
+                query.name = { $regex: search, $options: 'i' };
+            }
+
+            // 3. Ejecutar consulta optimizada
+            // countDocuments es rápido si está indexado
+            const totalDocs = await Professor.countDocuments(query);
+            const totalPages = Math.ceil(totalDocs / limit);
+
+            const professors = await Professor.find(query)
+                .skip(skip)
+                .limit(limit)
                 .populate({
                     path: 'subjects',
-                    select: 'name' // Explicitly select the name field
+                    select: 'name' 
                 })
                 .populate({
                     path: 'faculty',
-                    select: 'name' // Explicitly select the name field
-                });
+                    select: 'name abbreviation' 
+                })
+                .lean(); // .lean() lo hace más rápido al devolver objetos planos JS en vez de Mongoose Docs
 
-            // Map the professors with type safety
-            const professorsWithDetails = professors.map(professor => ({
+            // 4. Mapeo limpio
+            const professorsWithDetails = professors.map((professor: any) => ({
                 _id: professor._id,
                 name: professor.name,
-                faculty: professor.faculty ? (professor.faculty as any).name : 'Sin facultad',
-                subjects: professor.subjects.map(subject => (subject as any).name),
+                // Manejo seguro de nulos por si se borró una facultad
+                faculty: professor.faculty ? professor.faculty.name : 'Sin facultad',
+                facultyAbbreviation: professor.faculty ? professor.faculty.abbreviation : 'N/A',
+                facultyId: professor.faculty ? professor.faculty._id : null,
+                subjects: professor.subjects ? professor.subjects.map((s: any) => s.name) : [],
                 ratingStats: professor.ratingStats
             }));
 
-            res.json(professorsWithDetails);
+            // 5. Devolver estructura paginada
+            res.json({
+                data: professorsWithDetails,
+                meta: {
+                    total: totalDocs,
+                    page,
+                    totalPages,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1
+                }
+            });
+
         } catch (error) {
             console.error('Error al obtener los profesores:', error);
             res.status(500).json({ error: 'Hubo un error al obtener los profesores' });

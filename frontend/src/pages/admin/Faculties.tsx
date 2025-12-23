@@ -44,15 +44,16 @@ const Faculties: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentFaculty, setCurrentFaculty] = useState<{ 
-    _id?: string; 
-    name: string; 
-    abbreviation: string; 
-    departments: string[] 
-  }>({ 
-    name: "", 
-    abbreviation: "", 
-    departments: [] 
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [currentFaculty, setCurrentFaculty] = useState<{
+    _id?: string;
+    name: string;
+    abbreviation: string;
+    departments: string[]
+  }>({
+    name: "",
+    abbreviation: "",
+    departments: []
   });
   const [facultyToDelete, setFacultyToDelete] = useState<string | null>(null);
   const location = useLocation();
@@ -62,6 +63,7 @@ const Faculties: React.FC = () => {
 
   const fetchFaculties = async () => {
     try {
+      setIsLoadingData(true);
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/faculty`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -70,6 +72,8 @@ const Faculties: React.FC = () => {
       setFaculties(response.data);
     } catch (err) {
       console.error('Error fetching faculties:', err);
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -78,13 +82,13 @@ const Faculties: React.FC = () => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const applyTheme = () => {
-        root.classList.toggle(
-            'dark',
-            theme === themeKeys.dark ||
-            (theme === themeKeys.system && mediaQuery.matches)
-        )
+      root.classList.toggle(
+        'dark',
+        theme === themeKeys.dark ||
+        (theme === themeKeys.system && mediaQuery.matches)
+      )
 
-        localStorage.setItem("theme", theme)
+      localStorage.setItem("theme", theme)
     };
 
     applyTheme();
@@ -94,13 +98,13 @@ const Faculties: React.FC = () => {
     // Set view transition name for header
     const headerElement = document.getElementById('site-header');
     if (headerElement) {
-        headerElement.style.viewTransitionName = 'site-header';
+      headerElement.style.viewTransitionName = 'site-header';
     }
 
     return () => {
-        mediaQuery.removeEventListener("change", applyTheme)
+      mediaQuery.removeEventListener("change", applyTheme)
     };
-}, [theme]);
+  }, [theme]);
 
   useEffect(() => {
     fetchFaculties();
@@ -128,11 +132,11 @@ const Faculties: React.FC = () => {
   };
 
   const handleEditFaculty = (faculty: Faculty) => {
-    setCurrentFaculty({ 
-      _id: faculty._id, 
-      name: faculty.name, 
-      abbreviation: faculty.abbreviation, 
-      departments: faculty.departments 
+    setCurrentFaculty({
+      _id: faculty._id,
+      name: faculty.name,
+      abbreviation: faculty.abbreviation,
+      departments: faculty.departments
     });
     setIsDialogOpen(true);
   };
@@ -249,36 +253,49 @@ const Faculties: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFaculties.map(faculty => (
-                <TableRow key={faculty._id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-amber-100 text-amber-600 text-3xl p-2 rounded-full"><Building2 /></div>
-                      <span className="font-medium">{faculty.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{faculty.abbreviation}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleEditFaculty(faculty)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="text-red-500 hover:bg-red-100"
-                        onClick={() => handleDeleteFaculty(faculty._id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {isLoadingData ? (
+                // Skeleton simplificado
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i}><TableCell colSpan={5} className="h-16 text-center animate-pulse">Cargando...</TableCell></TableRow>
+                ))
+              ) : filteredFaculties.length > 0 ? (
+                filteredFaculties.map(faculty => (
+                  <TableRow key={faculty._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-amber-100 text-amber-600 text-3xl p-2 rounded-full"><Building2 /></div>
+                        <span className="font-medium">{faculty.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{faculty.abbreviation}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEditFaculty(faculty)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="text-red-500 hover:bg-red-100"
+                          onClick={() => handleDeleteFaculty(faculty._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center h-24">
+                    No se encontraron profesores
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
@@ -297,7 +314,7 @@ const Faculties: React.FC = () => {
               <Input
                 value={currentFaculty.name}
                 className='dark:bg-[#383939] border border-gray-300 dark:border-[#202024] dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-white focus:border-indigo-500'
-                onChange={(e) => setCurrentFaculty({...currentFaculty, name: e.target.value})}
+                onChange={(e) => setCurrentFaculty({ ...currentFaculty, name: e.target.value })}
                 placeholder="Ej. Facultad de Ingeniería"
               />
             </div>
@@ -306,7 +323,7 @@ const Faculties: React.FC = () => {
               <Input
                 value={currentFaculty.abbreviation}
                 className='dark:bg-[#383939] border border-gray-300 dark:border-[#202024] dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-white focus:border-indigo-500'
-                onChange={(e) => setCurrentFaculty({...currentFaculty, abbreviation: e.target.value})}
+                onChange={(e) => setCurrentFaculty({ ...currentFaculty, abbreviation: e.target.value })}
                 placeholder="Ej. FI"
               />
             </div>

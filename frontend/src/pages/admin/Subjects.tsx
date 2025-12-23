@@ -1,29 +1,16 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useToast } from "../../hooks/use-toast";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "../../components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "../../components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
@@ -31,8 +18,6 @@ import { Plus, MoreHorizontal, Book, Users, Trash2, Edit, ChevronLeft, ChevronRi
 
 // API base URL
 const API_URL = import.meta.env.VITE_API_URL;
-// Items per page for client-side pagination
-const ITEMS_PER_PAGE = 10;
 
 // Interfaces
 interface IFaculty {
@@ -47,166 +32,125 @@ interface ISubject {
   credits: number;
   description: string;
   faculty: IFaculty | null;
-  professors: string[];
-  studentsCount?: number;
+  professors: string[]; // IDs de profesores
 }
-
-// Utility function to normalize strings for case-insensitive comparison
-const normalizeString = (str = '') => 
-  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 const Subjects = () => {
   const { toast } = useToast();
   
-  // Main data states
-  const [allSubjects, setAllSubjects] = useState<ISubject[]>([]);
-  const [faculties, setFaculties] = useState<IFaculty[]>([]);
+  // Data states
+  const [subjects, setSubjects] = useState<ISubject[]>([]);
+  const [faculties, setFaculties] = useState<IFaculty[]>([]); // Facultades para el dropdown
   
-  // UI states
+  // Pagination & Search states
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // UI states
   const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [currentSubject, setCurrentSubject] = useState<Partial<ISubject>>({ faculty: null });
   const [confirmationInput, setConfirmationInput] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // Loading states
-  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  // Memoized filtered subjects - only recalculate when necessary
-  const filteredSubjects = useMemo(() => {
-    if (!searchTerm.trim()) return allSubjects;
-    
-    const normalizedSearch = normalizeString(searchTerm);
-    return allSubjects.filter(subject => 
-      normalizeString(subject.name).includes(normalizedSearch) ||
-      (subject.faculty && normalizeString(subject.faculty.abbreviation).includes(normalizedSearch))
-    );
-  }, [allSubjects, searchTerm]);
-  
-  // Calculate paginated subjects
-  const paginatedSubjects = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredSubjects.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredSubjects, currentPage]);
-  
-  // Total pages
-  const totalPages = useMemo(() => 
-    Math.max(1, Math.ceil(filteredSubjects.length / ITEMS_PER_PAGE)), 
-    [filteredSubjects.length]
-  );
-  
-  // Reset to first page when search term changes
+
+  // 1. DEBOUNCE: Esperar a que el usuario termine de escribir
   useEffect(() => {
-    setCurrentPage(1);
+    const timer = setTimeout(() => {
+        setDebouncedSearch(searchTerm);
+        setCurrentPage(1); // Reset a página 1 al buscar
+    }, 500);
+    return () => clearTimeout(timer);
   }, [searchTerm]);
-  
-  // Fetch initial data (subjects and faculties) in parallel
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-    
-    const fetchInitialData = async () => {
+
+  // 2. FETCH SUBJECTS (Server-Side Pagination)
+  const fetchSubjects = useCallback(async () => {
       try {
-        // Create both requests
-        const subjectsPromise = axios.get(`${API_URL}/admin/subjects`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          signal: controller.signal
-        });
-        
-        const facultiesPromise = axios.get(`${API_URL}/admin/faculty`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          signal: controller.signal
-        });
-        
-        // Execute in parallel
-        const [subjectsRes, facultiesRes] = await Promise.all([
-          subjectsPromise,
-          facultiesPromise
-        ]);
-        
-        if (isMounted) {
-          setAllSubjects(subjectsRes.data);
-          setFaculties(facultiesRes.data);
-          setIsInitialDataLoaded(true);
-        }
-      } catch (error) {
-        if (isMounted && !axios.isCancel(error)) {
-          toast({
-            title: 'Error',
-            description: 'No se pudieron cargar los datos',
-            variant: 'destructive'
+          setIsLoadingData(true);
+          const token = localStorage.getItem('token');
+          
+          const response = await axios.get(`${API_URL}/admin/subjects`, {
+              params: {
+                  page: currentPage,
+                  limit: 10,
+                  search: debouncedSearch
+              },
+              headers: { Authorization: `Bearer ${token}` }
           });
-        }
+
+          setSubjects(response.data.data);
+          setTotalPages(response.data.meta.totalPages);
+      } catch (error) {
+          toast({ title: 'Error', description: 'No se pudieron cargar las materias', variant: 'destructive' });
+      } finally {
+          setIsLoadingData(false);
       }
+  }, [currentPage, debouncedSearch, toast]);
+
+  // Ejecutar fetch cuando cambie página o búsqueda
+  useEffect(() => {
+      fetchSubjects();
+  }, [fetchSubjects]);
+
+  // 3. FETCH FACULTIES (Solo una vez para el dropdown)
+  // Las facultades son pocas (<100), se pueden cargar todas sin problema.
+  useEffect(() => {
+    const fetchFaculties = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/admin/faculty`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            });
+            setFaculties(res.data);
+        } catch (error) {
+            console.error("Error loading faculties");
+        }
     };
-    
-    fetchInitialData();
-    
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
+    fetchFaculties();
   }, []);
   
-  // Functions for handling subject operations
-  const handleDialogOpen = useCallback((subject?: ISubject) => {
-    setCurrentSubject(subject || { faculty: null });
+  // --- HANDLERS ---
+
+  const handleDialogOpen = (subject?: ISubject) => {
+    setCurrentSubject(subject || { faculty: null, name: '', credits: 0, description: '' });
     setErrors({});
     setOpenDialog(true);
-  }, []);
+  };
   
-  const validateForm = useCallback(() => {
+  const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!currentSubject.name?.trim()) newErrors.name = 'Nombre obligatorio';
     if (!currentSubject.credits || currentSubject.credits < 1 || currentSubject.credits > 22) {
       newErrors.credits = 'Créditos entre 1-22';
     }
-    if (!currentSubject.faculty?._id) newErrors.faculty = 'Facultad obligatoria';
-    if (currentSubject.description && currentSubject.description.length > 500) {
-      newErrors.description = 'Máximo 500 caracteres';
-    }
+    // Verificación robusta del ID de la facultad
+    if (!currentSubject.faculty?._id && !currentSubject.faculty) newErrors.faculty = 'Facultad obligatoria';
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [currentSubject]);
+  };
   
-  const handleSaveSubject = useCallback(async () => {
+  const handleSaveSubject = async () => {
     if (!validateForm()) return;
     
     try {
       setIsLoadingAction(true);
       const isEdit = !!currentSubject._id;
+      
+      // Aseguramos obtener el ID correcto de la facultad
+      const facultyId = currentSubject.faculty?._id || (currentSubject.faculty as any);
+
       const url = isEdit
-        ? `${API_URL}/admin/faculty/${currentSubject.faculty?._id}/subject/${currentSubject._id}`
-        : `${API_URL}/admin/faculty/${currentSubject.faculty?._id}/subject`;
+        ? `${API_URL}/admin/faculty/${facultyId}/subject/${currentSubject._id}`
+        : `${API_URL}/admin/faculty/${facultyId}/subject`;
         
-      const response = await axios[isEdit ? 'put' : 'post'](
+      await axios[isEdit ? 'put' : 'post'](
         url, 
         currentSubject, 
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      
-      // Si es una nueva materia, hacer una recarga completa de datos
-      // para asegurar que todos los campos estén correctamente cargados
-      if (!isEdit) {
-        try {
-          const refreshResponse = await axios.get(`${API_URL}/admin/subjects`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          });
-          setAllSubjects(refreshResponse.data);
-        } catch (refreshError) {
-          // Si falla la recarga, al menos añadimos la materia con los datos que tenemos
-          setAllSubjects(prev => [response.data, ...prev]);
-        }
-      } else {
-        // Para ediciones, actualizamos solo la materia modificada
-        setAllSubjects(prev => prev.map(s => s._id === currentSubject._id ? response.data : s));
-      }
       
       toast({
         title: `Materia ${isEdit ? 'actualizada' : 'creada'}`,
@@ -214,6 +158,7 @@ const Subjects = () => {
       });
       
       setOpenDialog(false);
+      fetchSubjects(); // Recargar la tabla actual
     } catch (error) {
       toast({
         title: 'Error',
@@ -223,59 +168,32 @@ const Subjects = () => {
     } finally {
       setIsLoadingAction(false);
     }
-  }, [currentSubject, validateForm]);
+  };
   
-  const handleDeleteSubject = useCallback(async () => {
-    if (!currentSubject._id || !currentSubject.faculty?._id) return;
+  const handleDeleteSubject = async () => {
+    if (!currentSubject._id || !currentSubject.faculty) return;
     
     try {
       setIsLoadingAction(true);
+      // Extraemos ID de facultad de forma segura
+      const facultyId = currentSubject.faculty._id || (currentSubject.faculty as unknown as string);
+
       await axios.delete(
-        `${API_URL}/admin/faculty/${currentSubject.faculty._id}/subject/${currentSubject._id}`,
+        `${API_URL}/admin/faculty/${facultyId}/subject/${currentSubject._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       
-      setAllSubjects(prev => prev.filter(s => s._id !== currentSubject._id));
-      
-      toast({
-        title: 'Materia eliminada',
-        description: `La materia "${currentSubject.name}" ha sido eliminada`,
-      });
+      toast({ title: 'Materia eliminada', description: `Materia eliminada correctamente` });
       
       setOpenDeleteDialog(false);
       setConfirmationInput('');
+      fetchSubjects(); // Recargar la tabla
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Error al eliminar la materia',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: 'Error al eliminar la materia', variant: 'destructive' });
     } finally {
       setIsLoadingAction(false);
     }
-  }, [currentSubject]);
-  
-  // Skeleton loader for initial data loading
-  const SkeletonLoader = () => (
-    <>
-      {[...Array(5)].map((_, index) => (
-        <TableRow key={`skeleton-${index}`}>
-          <TableCell>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-[#d4d3d3] animate-pulse"></div>
-              <div className="h-4 bg-gray-200 dark:bg-[#d4d3d3] rounded w-32 animate-pulse"></div>
-            </div>
-          </TableCell>
-          <TableCell><div className="h-4 bg-gray-200 dark:bg-[#d4d3d3] rounded w-16 animate-pulse"></div></TableCell>
-          <TableCell><div className="h-4 bg-gray-200 dark:bg-[#d4d3d3] rounded w-8 animate-pulse"></div></TableCell>
-          <TableCell><div className="h-4 bg-gray-200 dark:bg-[#d4d3d3] rounded w-12 animate-pulse"></div></TableCell>
-          <TableCell className="text-right">
-            <div className="h-8 bg-gray-200 dark:bg-[#d4d3d3] rounded w-8 ml-auto animate-pulse"></div>
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
-  );
+  };
   
   return (
     <div className="bg-white dark:bg-[#0A0A0A] min-h-screen">
@@ -285,24 +203,21 @@ const Subjects = () => {
           <Button 
             className="bg-black dark:bg-indigo-600 text-white hover:cursor-pointer" 
             onClick={() => handleDialogOpen()}
-            disabled={!isInitialDataLoaded}
           >
             <Plus className="w-4 h-4 mr-2" />
             Nueva Materia
           </Button>
         </div>
 
-        {isInitialDataLoaded && (
-          <div className="relative w-full max-w-md mb-6">
+        <div className="relative w-full max-w-md mb-6">
             <Input
               type="text"
-              placeholder="Buscar por nombre o facultad..."
+              placeholder="Buscar por nombre..."
               className="w-full border border-gray-200 dark:border-[#2B2B2D] px-4 py-3 rounded-xl shadow-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
-        )}
+        </div>
 
         <div className="border border-gray-300 dark:border-[#383939] rounded-lg overflow-hidden">
           <Table>
@@ -316,11 +231,14 @@ const Subjects = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!isInitialDataLoaded ? (
-                <SkeletonLoader />
-              ) : paginatedSubjects.length > 0 ? (
-                paginatedSubjects.map((subject) => (
-                  <TableRow className="hover:bg-gray-100" key={subject._id}>
+              {isLoadingData ? (
+                 // Skeleton simple
+                 [...Array(5)].map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={5} className="h-16 text-center animate-pulse">Cargando...</TableCell></TableRow>
+                 ))
+              ) : subjects.length > 0 ? (
+                subjects.map((subject) => (
+                  <TableRow className="hover:bg-gray-100 dark:hover:bg-[#ffffff0d]" key={subject._id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
@@ -378,30 +296,28 @@ const Subjects = () => {
           </Table>
         </div>
         
-        {/* Pagination */}
-        {isInitialDataLoaded && totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-4">
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center gap-4 mt-4">
             <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1 || isLoadingData}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             >
-              <ChevronLeft className="h-4 w-4 dark:text-white" />
+                <ChevronLeft className="h-4 w-4 dark:text-white" />
             </Button>
             <span className="text-sm dark:text-white">
-              Página {currentPage} de {totalPages}
+                Página {currentPage} de {totalPages}
             </span>
             <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages || isLoadingData}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             >
-              <ChevronRight className="h-4 w-4 dark:text-white" />
+                <ChevronRight className="h-4 w-4 dark:text-white" />
             </Button>
-          </div>
-        )}
+        </div>
 
         {/* Add/Edit Dialog */}
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -418,7 +334,7 @@ const Subjects = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-white">Nombre de la Materia <span className="text-red-500">*</span></Label>
+                <Label className="dark:text-white">Nombre de la Materia <span className="text-red-500">*</span></Label>
                 <Input
                   value={currentSubject?.name || ''}
                   onChange={(e) => setCurrentSubject(prev => ({ ...prev, name: e.target.value }))}
@@ -428,7 +344,7 @@ const Subjects = () => {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white">Créditos <span className="text-red-500">*</span></Label>
+                <Label className="dark:text-white">Créditos <span className="text-red-500">*</span></Label>
                 <Input
                   type="number"
                   value={currentSubject?.credits || ''}
@@ -442,9 +358,10 @@ const Subjects = () => {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white">Facultad <span className="text-red-500">*</span></Label>
+                <Label className="dark:text-white">Facultad <span className="text-red-500">*</span></Label>
                 <Select
-                  value={currentSubject?.faculty?._id || ''}
+                  // Manejo robusto del valor seleccionado (si es objeto o string)
+                  value={currentSubject?.faculty?._id || (typeof currentSubject?.faculty === 'string' ? currentSubject.faculty : '')}
                   onValueChange={(value) => {
                     const faculty = faculties.find(f => f._id === value);
                     setCurrentSubject(prev => ({ ...prev, faculty: faculty || null }));
@@ -453,12 +370,9 @@ const Subjects = () => {
                   <SelectTrigger className={errors.faculty ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Seleccionar facultad" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     {faculties.map(faculty => (
-                      <SelectItem
-                        key={faculty._id}
-                        value={faculty._id}
-                      >
+                      <SelectItem key={faculty._id} value={faculty._id} className="hover:bg-gray-100">
                         {faculty.name}
                       </SelectItem>
                     ))}
@@ -468,7 +382,7 @@ const Subjects = () => {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-white">Descripción</Label>
+                <Label className="dark:text-white">Descripción</Label>
                 <Input
                   value={currentSubject?.description || ''}
                   onChange={(e) => setCurrentSubject(prev => ({ ...prev, description: e.target.value }))}

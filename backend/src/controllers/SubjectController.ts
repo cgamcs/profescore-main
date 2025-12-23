@@ -141,15 +141,43 @@ export class SubjectController {
 
     static getAllSubjects = async (req: Request, res: Response) => {
         try {
-            const subjects = await Subject.find()
-                .populate('department', 'name')
-                .populate('professors', 'name')
-                .populate('faculty', 'abbreviation');
+            // 1. Obtener parámetros de query
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const search = req.query.search as string || '';
+            const skip = (page - 1) * limit;
 
-            res.json(subjects);
+            // 2. Construir Query de Mongoose
+            let query: any = {};
+            if (search) {
+                query.name = { $regex: search, $options: 'i' };
+            }
+
+            // 3. Ejecutar conteo y búsqueda
+            const totalDocs = await Subject.countDocuments(query);
+            const totalPages = Math.ceil(totalDocs / limit);
+
+            const subjects = await Subject.find(query)
+                .skip(skip)
+                .limit(limit)
+                .populate('faculty', 'name abbreviation') // Traemos datos de facultad
+                .lean(); // .lean() devuelve JSON plano (más rápido)
+
+            // 4. Responder con estructura paginada
+            res.json({
+                data: subjects,
+                meta: {
+                    total: totalDocs,
+                    page,
+                    totalPages,
+                    hasNextPage: page < totalPages,
+                    hasPrevPage: page > 1
+                }
+            });
+
         } catch (error) {
-            console.error('Error al traer todas las materias:', error);
-            res.status(500).json({ error: 'Hubo un error' });
+            console.error('Error al obtener materias:', error);
+            res.status(500).json({ error: 'Hubo un error al obtener las materias' });
         }
     };
 
