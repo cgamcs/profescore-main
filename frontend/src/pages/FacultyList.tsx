@@ -31,7 +31,7 @@ const FacultyList: React.FC<FacultyListProps> = ({ faculties, isLoading, error }
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {Array.isArray(faculties) && faculties.map((faculty) => (
+          {Array.isArray(faculties) && faculties.slice(0, 12).map((faculty) => (
             <Link
               key={faculty._id}
               to={`/facultad/${faculty._id}`}
