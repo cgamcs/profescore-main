@@ -207,7 +207,7 @@ const FacultyDetails = () => {
 
                                         <div className="flex items-center">
                                             <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#2B2B2D] px-3 py-1.5 rounded-full border border-gray-100 dark:border-[#383939]">
-                                                <span className='font-bold text-sm text-white'>
+                                                <span className='font-bold text-sm text-indigo-500 dark:text-white'>
                                                     {professor.ratingStats.averageGeneral.toFixed(1)}
                                                 </span>
                                                 {renderStars(professor.ratingStats.averageGeneral)}

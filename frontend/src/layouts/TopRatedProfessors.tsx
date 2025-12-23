@@ -76,7 +76,7 @@ const TopRatedProfessors: React.FC = () => {
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white">{professor.name}</h3>
                   <p className="text-indigo-600 dark:text-indigo-400 text-sm">{professor.faculty.abbreviation}</p>
                 </div>
-                <div className="border border-gray-200 dark:border-[#646464] text-indigo-800 dark:text-white font-bold rounded px-2 py-1 text-lg">
+                <div className="border border-gray-200 dark:border-[#646464] text-indigo-500 dark:text-white font-bold rounded px-2 py-1 text-lg">
                   {professor.ratingStats.averageGeneral.toFixed(1)}
                 </div>
               </div>
