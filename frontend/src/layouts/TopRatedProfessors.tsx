@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { TopProfessorsLoader } from './SkeletonLoader';
-import api from '../api';
 
 interface Professor {
   _id: string;
@@ -18,26 +16,14 @@ interface Professor {
   };
 }
 
-const STALE_TIME = 5 * 60 * 1000; // 5 minutos
+interface TopRatedProfessorsProps {
+  professors: Professor[];
+  isLoading: boolean;
+  error: unknown;
+}
 
-const TopRatedProfessors: React.FC = () => {
-  const { data: professors = [], isLoading, error } = useQuery({
-    queryKey: ['topProfessors'],
-    queryFn: () => api.get('/faculties').then(res => res.data.topProfessors),
-    staleTime: STALE_TIME,
-    select: (data) => data.map((prof: Professor) => ({
-      _id: prof._id,
-      name: prof.name,
-      department: prof.department,
-      faculty: prof.faculty,
-      subjects: prof.subjects,
-      ratingStats: {
-        averageGeneral: prof.ratingStats.averageGeneral,
-        totalRatings: prof.ratingStats.totalRatings
-      }
-    }))
-  });
-
+const TopRatedProfessors: React.FC<TopRatedProfessorsProps> = ({ professors, isLoading, error }) => {
+  
   // Memoizar el renderizado de estrellas
   const renderStars = useMemo(() => (rating: number) => {
     return (
@@ -58,7 +44,9 @@ const TopRatedProfessors: React.FC = () => {
 
   if (isLoading) return <TopProfessorsLoader />;
   if (error) return <div className="text-center text-red-500 py-10">Error al cargar los profesores</div>;
-  if (professors.length === 0) return <div className="text-center py-10">No hay profesores disponibles</div>;
+  
+  // Si ya cargó pero no hay datos
+  if (!isLoading && professors.length === 0) return <div className="text-center py-10 text-gray-500">No hay profesores destacados disponibles</div>;
 
   return (
     <section id="main-content" data-view-transition className="py-12 bg-gray-50 dark:bg-[#131313]">

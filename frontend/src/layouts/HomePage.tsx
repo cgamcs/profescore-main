@@ -1,12 +1,29 @@
 import React, { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import FacultyList from '../pages/FacultyList';
 import TopRatedProfessors from './TopRatedProfessors';
+import api from '../api';
 
 const HomePage: React.FC = () => {
   useEffect(() => {
     document.title = 'ProfeScore';
   }, []);
+
+  // 1. HACEMOS LA PETICIÓN AQUÍ (UNA SOLA VEZ)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['homeData'],
+    queryFn: async () => {
+      const res = await api.get('/faculties');
+      // Asumiendo que tu backend devuelve { faculties: [], topProfessors: [] }
+      // Si devuelve estructura diferente, ajusta aquí.
+      return res.data; 
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutos de caché
+  });
+
+  const faculties = data?.faculties || [];
+  const topProfessors = data?.topProfessors || [];
 
   return (
     <div id="main-content" data-view-transition className="min-h-screen bg-white dark:bg-[#0A0A0A]">
@@ -16,8 +33,9 @@ const HomePage: React.FC = () => {
         <p className="text-gray-600 dark:text-[#d4d3d3] mt-2">Califica y encuentra a los mejores maestros</p>
       </div>
 
-      <FacultyList />
-      <TopRatedProfessors />
+      {/* 2. PASAMOS LOS DATOS Y EL ESTADO DE CARGA A LOS HIJOS */}
+      <FacultyList faculties={faculties} isLoading={isLoading} error={error} />
+      <TopRatedProfessors professors={topProfessors} isLoading={isLoading} error={error} />
 
       {/* Footer */}
       <footer className="bg-white dark:bg-[#0A0A0A] border-t border-gray-200 dark:border-[#202024]">

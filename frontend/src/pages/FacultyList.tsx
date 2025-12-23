@@ -1,17 +1,23 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { FacultyListLoader } from '../layouts/SkeletonLoader';
-import api from '../api';
 import useViewTransition from '../layouts/useViewTransition';
 
-const FacultyList: React.FC = () => {
+// Definimos la interfaz de lo que esperamos recibir
+interface Faculty {
+  _id: string;
+  name: string;
+  abbreviation: string;
+}
+
+interface FacultyListProps {
+  faculties: Faculty[];
+  isLoading: boolean;
+  error: unknown;
+}
+
+const FacultyList: React.FC<FacultyListProps> = ({ faculties, isLoading, error }) => {
   const { handleLinkClick } = useViewTransition();
-  const { data: faculties = [], isLoading, error } = useQuery({
-    queryKey: ['faculties'],
-    queryFn: () => api.get('/faculties').then(res => res.data.faculties),
-    staleTime: 5 * 60 * 1000 // 5 minutos
-  });
 
   if (isLoading) return <FacultyListLoader />;
   if (error) return <div className="text-center text-red-500 py-10">Error al cargar las facultades</div>;
