@@ -90,13 +90,45 @@ export class SubjectController {
 
     static getFacultySubjects = async (req: Request, res: Response) => {
         try {
-            const cacheKey = `facultySubjects:${req.params.facultyId}`;
+            const { facultyId } = req.params;
+            const { limit, search } = req.query;
+
+            // 1. Crear una Key de caché única para esta combinación de búsqueda
+            // Si buscamos "mate", la key será diferente a si buscamos "física"
+            const cacheKey = `facultySubjects:${facultyId}:${search || 'all'}:${limit || 'all'}`;
+            
             let subjects = cache.get<any[]>(cacheKey);
 
             if (!subjects) {
-                subjects = await Subject.find({ faculty: req.params.facultyId })
+                // 2. Construir el filtro dinámico
+                const filter: any = { faculty: facultyId };
+
+                if (search) {
+                    // Usamos tu función existente para normalizar lo que escribe el usuario
+                    const searchNormalized = normalizeName(search as string);
+                    
+                    // Buscamos coincidencias parciales (como LIKE en SQL) sobre tu campo optimizado
+                    filter.normalizedName = { $regex: searchNormalized, $options: 'i' };
+                }
+
+                // 3. Preparar la consulta base
+                let query = Subject.find(filter)
                     .populate('department', 'name')
                     .populate('professors', 'name');
+
+                // 4. Aplicar el límite SOLO si se envía (ej: ?limit=6)
+                // Esto es lo que salvará a tu CPU de 0.5 vCores
+                if (limit) {
+                    const limitNum = parseInt(limit as string);
+                    if (!isNaN(limitNum)) {
+                        query = query.limit(limitNum);
+                    }
+                }
+
+                // Ejecutar la consulta
+                subjects = await query;
+
+                // Guardar en caché (puedes ajustar el tiempo si es búsqueda)
                 cache.set(cacheKey, subjects, 600);
             }
 

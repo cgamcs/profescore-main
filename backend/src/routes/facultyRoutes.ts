@@ -11,7 +11,7 @@ import { professorExists } from '../middleware/professor';
 import { ratingExists, ratingBelongsToProfessor } from '../middleware/rating';
 import { verifyRecaptcha } from '../controllers/RecaptchaController';
 
-const router = Router();
+const router: Router = Router();
 
 router.param('facultyId', facultyExists);
 

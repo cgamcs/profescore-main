@@ -214,16 +214,49 @@ export class ProfessorController {
 
     static getFacultyProfessors = async (req: Request, res: Response) => {
         try {
-            const cacheKey = `facultyProfessors:${req.faculty.id}`;
+            const { facultyId } = req.params;
+            const { limit, search } = req.query;
+
+            // Creamos una key de caché compuesta para no mezclar búsquedas
+            const cacheKey = `facultyProfessors:${facultyId}:${search || 'all'}:${limit || 'all'}`;
             let professors = cache.get<any[]>(cacheKey);
 
             if (!professors) {
-                professors = await Professor.find({ faculty: req.faculty.id });
-                cache.set(cacheKey, professors, 600);
+                // 1. Construir query base
+                const query: any = { faculty: facultyId };
+
+                // 2. Si hay búsqueda, filtrar por nombre (Case insensitive)
+                if (search) {
+                    // Usamos regex 'i' (insensitive) para buscar coincidencias parciales
+                    // Nota: Para optimización máxima futura, agregaremos 'normalizedName' al modelo,
+                    // pero esto funciona YA con tus datos actuales.
+                    query.name = { $regex: search, $options: 'i' };
+                }
+
+                // 3. Preparar la consulta a Mongoose
+                let mongooseQuery = Professor.find(query)
+                    // Solo traemos los campos necesarios para la tarjeta (ahorro de ancho de banda)
+                    .select('name ratingStats faculty subjects')
+                    .populate('subjects', 'name') // Populate ligero
+                    .populate('faculty', 'name');
+
+                // 4. Aplicar límite si existe
+                if (limit) {
+                    const limitNum = parseInt(limit as string);
+                    if (!isNaN(limitNum)) {
+                        mongooseQuery = mongooseQuery.limit(limitNum);
+                    }
+                }
+
+                professors = await mongooseQuery;
+                
+                // Cachear resultado por 60 segundos (menos tiempo para búsquedas dinámicas)
+                cache.set(cacheKey, professors, 60);
             }
 
             res.json(professors);
         } catch (error) {
+            console.error(error);
             res.status(500).json({ error: 'Hubo un error al mostrar profesores' });
         }
     }

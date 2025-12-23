@@ -1,5 +1,5 @@
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { FacultyDetailLoader } from '../layouts/SkeletonLoader';
 import api from '../api';
@@ -29,106 +29,104 @@ interface IProfessor {
 
 const FacultyDetails = () => {
     const { facultyId } = useParams();
-    const [searchQuery, setSearchQuery] = useState('');
     const { handleLinkClick } = useViewTransition();
+    
+    // Estados para la búsqueda
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+
     const subjectsContainerRef = useRef<HTMLTableElement>(null);
     const professorsContainerRef = useRef<HTMLDivElement>(null);
     const [subjectsHeight, setSubjectsHeight] = useState<number | null>(null);
     const [professorsHeight, setProfessorsHeight] = useState<number | null>(null);
 
-    const { data: subjects = [], isLoading: subjectsLoading } = useQuery({
-        queryKey: ['subjects', facultyId],
-        queryFn: () => api.get(`/faculties/${facultyId}/subjects`).then(res => res.data),
+    // 1. EFECTO DEBOUNCE: Espera 500ms después de que dejas de escribir para actualizar
+    // esto evita hacer peticiones por cada letra que escribes.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // 2. QUERY OPTIMIZADO PARA MATERIAS
+    // Agregamos <ISubject[]> para decirle a TS que esto devuelve un array de materias
+    const { data: subjects = [], isLoading: subjectsLoading } = useQuery<ISubject[]>({
+        queryKey: ['subjects', facultyId, debouncedSearch], 
+        queryFn: () => api.get(`/faculties/${facultyId}/subjects`, {
+            params: {
+                search: debouncedSearch,
+                limit: debouncedSearch ? 20 : 6 
+            }
+        }).then(res => res.data),
+        // CORRECCIÓN V5: Usar placeholderData en lugar de keepPreviousData: true
+        placeholderData: keepPreviousData 
     });
 
-    const { data: professors = [], isLoading: professorsLoading } = useQuery({
-        queryKey: ['professors', facultyId],
-        queryFn: () => api.get(`/faculties/${facultyId}/professors`).then(res => res.data),
+    // 3. QUERY OPTIMIZADO PARA PROFESORES
+    // Agregamos <IProfessor[]> para tipar la respuesta
+    const { data: professors = [], isLoading: professorsLoading } = useQuery<IProfessor[]>({
+        queryKey: ['professors', facultyId, debouncedSearch],
+        queryFn: () => api.get(`/faculties/${facultyId}/professors`, {
+            params: {
+                search: debouncedSearch,
+                limit: debouncedSearch ? 20 : 3
+            }
+        }).then(res => res.data),
+        // CORRECCIÓN V5
+        placeholderData: keepPreviousData
     });
 
     useEffect(() => {
         document.title = "ProfeScore - Facultad";
-
         const prepareTransition = () => {
           const root = document.documentElement;
           root.style.viewTransitionName = 'root';
-          root.style.animation = 'none'; // Resetear animaciones
-
+          root.style.animation = 'none';
           const mainElement = document.getElementById('main-content');
           if (mainElement) {
             mainElement.style.viewTransitionName = 'main-content';
             mainElement.style.contain = 'layout';
           }
         };
-
         prepareTransition();
-
         return () => {
           const root = document.documentElement;
           root.style.viewTransitionName = '';
-
           const mainElement = document.getElementById('main-content');
           if (mainElement) {
             mainElement.style.viewTransitionName = '';
             mainElement.style.contain = '';
           }
         };
-      }, []);
+    }, []);
 
-    // Almacenar las alturas una vez que los datos se han cargado
+    // Alturas dinámicas
     useEffect(() => {
         if (!subjectsLoading && !professorsLoading) {
-            if (subjectsContainerRef.current) {
-                setSubjectsHeight(subjectsContainerRef.current.offsetHeight);
-            }
-            if (professorsContainerRef.current) {
-                setProfessorsHeight(professorsContainerRef.current.offsetHeight);
-            }
+            if (subjectsContainerRef.current) setSubjectsHeight(subjectsContainerRef.current.offsetHeight);
+            if (professorsContainerRef.current) setProfessorsHeight(professorsContainerRef.current.offsetHeight);
         }
     }, [subjectsLoading, professorsLoading, subjects, professors]);
 
-    const isLoading = subjectsLoading || professorsLoading;
-
-    // Función para normalizar el texto (eliminar acentos y convertir a minúsculas)
-    const normalizeText = (text: string) => {
-        return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-    };
-
-    // Filtrado de materias y profesores según el término de búsqueda
-    const filteredSubjects = subjects.filter((subject: ISubject) =>
-        normalizeText(subject.name).includes(normalizeText(searchQuery))
-    );
-    const filteredProfessors = professors.filter((professor: IProfessor) =>
-        normalizeText(professor.name).includes(normalizeText(searchQuery))
-    );
-
-    // Determinar si se está buscando un profesor
-    const isSearchingProfessor = filteredProfessors.length > 0 && searchQuery.trim() !== '';
-
-    // Limitar la cantidad de materias y profesores mostrados
-    const displayedSubjects = isSearchingProfessor ? [] : filteredSubjects.slice(0, 6);
-    const displayedProfessors = filteredProfessors.slice(0, 3);
-
+    // Renderizado de Estrellas
     const renderStars = (rating: number) => {
         const fullStars = Math.floor(rating);
         const hasHalfStar = rating % 1 >= 0.5;
-
         return (
             <div className="flex">
                 {[...Array(5)].map((_, index) => {
-                    if (index < fullStars) {
-                        return <i key={index} className="fas fa-star text-indigo-500 dark:text-[#83838B] text-sm" />;
-                    }
-                    if (index === fullStars && hasHalfStar) {
-                        return <i key={index} className="fas fa-star-half-alt text-indigo-500 dark:text-[#83838B] text-sm" />;
-                    }
+                    if (index < fullStars) return <i key={index} className="fas fa-star text-indigo-500 dark:text-[#83838B] text-sm" />;
+                    if (index === fullStars && hasHalfStar) return <i key={index} className="fas fa-star-half-alt text-indigo-500 dark:text-[#83838B] text-sm" />;
                     return <i key={index} className="far fa-star text-gray-300 text-sm" />;
                 })}
             </div>
         );
     };
 
-    if (isLoading) return <FacultyDetailLoader />;
+    // Determinar si estamos en modo búsqueda (ya no filtramos array localmente)
+    const isSearching = searchQuery.trim() !== '';
 
     return (
         <main id="root-main" data-view-transition className="container mx-auto px-4 py-6">
@@ -148,78 +146,80 @@ const FacultyDetails = () => {
                 </svg>
             </div>
 
-            {/* Sección de Materias */}
-            {!isSearchingProfessor && (
+            {/* Lógica de Renderizado condicional para Búsqueda Combinada */}
+            {/* Si NO buscamos, mostramos ambas tablas. Si buscamos, mostramos lo que haya encontrado la API */}
+            
+            {/* Sección de Materias (Se oculta si buscas un profesor y la API devuelve 0 materias, lógica opcional) */}
+            {(!isSearching || subjects.length > 0) && (
                 <section className="mb-12">
-                    <h2 className="dark:text-white text-xl font-semibold mb-4">Tabla de Materias</h2>
-                    <div
-                        className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm transition-all"
-                        style={{
-                            minHeight: subjectsHeight ? `${subjectsHeight}px` : '200px'
-                        }}
-                    >
-                        <table
-                            ref={subjectsContainerRef}
-                            className="min-w-full divide-y divide-gray-200 dark:divide-[#383939]"
-                        >
-                            <thead className="bg-gray-50 dark:bg-indigo-600">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Materia</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Créditos</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-[#202024] divide-y divide-gray-200 dark:divide-[#383939]">
-                                {displayedSubjects.map((subject: ISubject) => (
-                                    <tr key={subject._id} className="hover:bg-gray-50 dark:hover:bg-[#ffffff0d]">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-white">
-                                            <a
-                                                href={`/facultad/${facultyId}/materia/${subject._id}`}
-                                                onClick={(e) => handleLinkClick(`/facultad/${facultyId}/materia/${subject._id}`, e)}
-                                            >
-                                                {subject.name}
-                                            </a>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{subject.credits}</td>
+                    <h2 className="dark:text-white text-xl font-semibold mb-4">
+                        {isSearching ? `Materias encontradas` : 'Tabla de Materias'}
+                    </h2>
+                    {subjectsLoading ? <FacultyDetailLoader /> : (
+                         <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm transition-all"
+                              style={{ minHeight: subjectsHeight ? `${subjectsHeight}px` : 'auto' }}>
+                            <table ref={subjectsContainerRef} className="min-w-full divide-y divide-gray-200 dark:divide-[#383939]">
+                                <thead className="bg-gray-50 dark:bg-indigo-600">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Materia</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Créditos</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="bg-white dark:bg-[#202024] divide-y divide-gray-200 dark:divide-[#383939]">
+                                    {subjects.map((subject: ISubject) => (
+                                        <tr key={subject._id} className="hover:bg-gray-50 dark:hover:bg-[#ffffff0d]">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600 dark:text-white">
+                                                <a href={`/facultad/${facultyId}/materia/${subject._id}`}
+                                                   onClick={(e) => handleLinkClick(`/facultad/${facultyId}/materia/${subject._id}`, e)}>
+                                                    {subject.name}
+                                                </a>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{subject.credits}</td>
+                                        </tr>
+                                    ))}
+                                    {subjects.length === 0 && (
+                                        <tr>
+                                            <td colSpan={2} className="px-6 py-4 text-center text-gray-500">No se encontraron materias</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </section>
             )}
 
-            {/* Sección de Profesores Destacados */}
-            <section>
-                <h2 className="text-xl dark:text-white font-semibold mb-4">Maestros Mejor Calificados</h2>
-                <div
-                    ref={professorsContainerRef}
-                    className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all"
-                    style={{
-                        minHeight: professorsHeight ? `${professorsHeight}px` : '150px'
-                    }}
-                >
-                    {displayedProfessors.map((professor: IProfessor) => (
-                        <a
-                            key={professor._id}
-                            href={`/facultad/${facultyId}/maestro/${professor._id}`}
-                            onClick={(e) => handleLinkClick(`/facultad/${facultyId}/maestro/${professor._id}`, e)}
-                            className="block"
-                        >
-                            <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 hover:shadow-md transition-shadow">
-                                <h3 className="font-medium dark:text-white text-lg mb-1">{professor.name}</h3>
-                                <div className="flex items-center">
-                                    <div className="flex items-center">
-                                        <span className="bg-indigo-100 dark:bg-[#646464] text-indigo-800 dark:text-white font-bold rounded px-2 py-1 text-sm mr-2">
-                                            {professor.ratingStats.averageGeneral.toFixed(1)}
-                                        </span>
-                                        {renderStars(professor.ratingStats.averageGeneral)}
+            {/* Sección de Profesores */}
+            {(!isSearching || professors.length > 0) && (
+                <section>
+                    <h2 className="text-xl dark:text-white font-semibold mb-4">
+                        {isSearching ? `Profesores encontrados` : 'Maestros Mejor Calificados'}
+                    </h2>
+                    {professorsLoading ? <FacultyDetailLoader /> : (
+                        <div ref={professorsContainerRef} 
+                             className="grid grid-cols-1 md:grid-cols-3 gap-6 transition-all"
+                             style={{ minHeight: professorsHeight ? `${professorsHeight}px` : 'auto' }}>
+                            {professors.map((professor: IProfessor) => (
+                                <a key={professor._id}
+                                   href={`/facultad/${facultyId}/maestro/${professor._id}`}
+                                   onClick={(e) => handleLinkClick(`/facultad/${facultyId}/maestro/${professor._id}`, e)}
+                                   className="block">
+                                    <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 hover:shadow-md transition-shadow">
+                                        <h3 className="font-medium dark:text-white text-lg mb-1">{professor.name}</h3>
+                                        <div className="flex items-center">
+                                            <span className="bg-indigo-100 dark:bg-[#646464] text-indigo-800 dark:text-white font-bold rounded px-2 py-1 text-sm mr-2">
+                                                {professor.ratingStats.averageGeneral.toFixed(1)}
+                                            </span>
+                                            {renderStars(professor.ratingStats.averageGeneral)}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </a>
-                    ))}
-                </div>
-            </section>
+                                </a>
+                            ))}
+                            {professors.length === 0 && <p className="text-gray-500">No se encontraron profesores.</p>}
+                        </div>
+                    )}
+                </section>
+            )}
         </main>
     );
 };
