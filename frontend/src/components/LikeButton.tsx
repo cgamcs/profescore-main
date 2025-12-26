@@ -47,8 +47,11 @@ const LikeButton: React.FC<LikeButtonProps> = ({ isLiked, likeCount, onClick }) 
           ></span>
         </div>
 
+        {/* --- CAMBIO AQUÍ: Lógica de texto --- */}
         <span className={`text-sm transition-colors duration-300 ${isLiked ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-500 dark:text-[#979797]'}`}>
-          {likeCount > 0 && likeCount}
+          {isLiked ? 'Útil' : '¿Útil?'}
+          {/* Mostramos el contador entre paréntesis si hay likes */}
+          {likeCount > 0 && <span className="ml-1">({likeCount})</span>}
         </span>
       </button>
     </>
