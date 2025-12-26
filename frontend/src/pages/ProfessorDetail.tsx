@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query'; // Importar useInfiniteQuery
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { FaRegStar, FaStar, FaStarHalfAlt } from 'react-icons/fa';
+import { FaRegStar, FaStar, FaStarHalfAlt, FaRegFlag } from 'react-icons/fa';
 import api from '../api';
 import { ProfessorDetailLoader } from '../layouts/SkeletonLoader';
 import ReportModal from '../components/ReportModal';
@@ -120,9 +120,9 @@ const ProfessorDetail = () => {
         return (
             <div className="flex">
                 {[...Array(fullStars)].map((_, i) => (
-                    <FaStar key={i} className="text-white dark:text-[#646464]" />
+                    <FaStar key={i} className="text-white dark:text-indigo-500" />
                 ))}
-                {hasHalfStar && <FaStarHalfAlt className="text-white dark:text-[#646464]" />}
+                {hasHalfStar && <FaStarHalfAlt className="text-white dark:text-indigo-500" />}
                 {[...Array(5 - fullStars - (hasHalfStar ? 1 : 0))].map((_, i) => (
                     <FaRegStar key={i + fullStars} className="text-white" />
                 ))}
@@ -137,9 +137,9 @@ const ProfessorDetail = () => {
         return (
             <div className="flex">
                 {[...Array(fullStars)].map((_, i) => (
-                    <FaStar key={i} className="text-indigo-500 dark:text-[#83838B]" />
+                    <FaStar key={i} className="text-indigo-500" />
                 ))}
-                {hasHalfStar && <FaStarHalfAlt className="text-indigo-500 dark:text-[#83838B]" />}
+                {hasHalfStar && <FaStarHalfAlt className="text-indigo-500" />}
                 {[...Array(5 - fullStars - (hasHalfStar ? 1 : 0))].map((_, i) => (
                     <FaRegStar key={i + fullStars} className="text-gray-300" />
                 ))}
@@ -201,8 +201,6 @@ const ProfessorDetail = () => {
         }
     };
 
-    // ... (El resto de funciones handleCaptchaChange, openReportModal, closeReportModal, handleReport, useEffects de titulo y ESC se quedan IGUAL) ...
-    // Copia y pega esas funciones aquí, no cambian.
     const handleCaptchaChange = (value: string | null) => {
         if (value) { setCaptchaValue(value); setCaptchaError(''); } else { setCaptchaValue(''); }
     };
@@ -260,7 +258,6 @@ const ProfessorDetail = () => {
             <main id="main-content" data-view-transition className="container mx-auto px-4 py-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="md:col-span-1">
-                        {/* ... (Toda la tarjeta de estadísticas del profesor se queda IGUAL) ... */}
                         <div className="bg-indigo-600 dark:bg-[#202024] text-white p-6 rounded-lg shadow-md mb-6">
                             <div className="text-3xl font-bold mb-2">
                                 {professor.ratingStats.averageGeneral.toFixed(1)}
@@ -275,19 +272,38 @@ const ProfessorDetail = () => {
 
                         <div className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-6 mb-6">
                             {/* Barras de progreso */}
-                            <div className="mb-1 dark:text-white font-medium">Explicación</div>
+                            <div className="flex justify-between mb-1 dark:text-white font-medium">
+                                <p>Explicación</p>
+
+                                {professor.ratingStats.averageExplanation.toFixed(1)}
+                            </div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
                                 <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageExplanation / 5) * 100}%` }}></div>
                             </div>
-                            <div className="mb-1 dark:text-white font-medium">Accesible</div>
+
+                            <div className="flex justify-between mb-1 dark:text-white font-medium">
+                                <p>Accesible</p>
+
+                                {professor.ratingStats.averageAccessibility.toFixed(1)}
+                            </div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
                                 <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageAccessibility / 5) * 100}%` }}></div>
                             </div>
-                            <div className="mb-1 dark:text-white font-medium">Dificultad</div>
+
+                            <div className="flex justify-between mb-1 dark:text-white font-medium">
+                                <p>Dificultad</p>
+
+                                {professor.ratingStats.averageDifficulty.toFixed(1)}
+                            </div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
                                 <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageDifficulty / 5) * 100}%` }}></div>
                             </div>
-                            <div className="mb-1 dark:text-white font-medium">Asistencia</div>
+
+                            <div className="flex justify-between mb-1 dark:text-white font-medium">
+                                <p>Asistencia</p>
+
+                                {professor.ratingStats.averageAttendance.toFixed(1)}
+                            </div>
                             <div className="w-full bg-gray-200 dark:bg-[#383939] rounded-full h-1.5 mb-4">
                                 <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${(professor.ratingStats.averageAttendance / 5) * 100}%` }}></div>
                             </div>
@@ -302,7 +318,7 @@ const ProfessorDetail = () => {
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Materias</h3>
-                                    <ul className="list-disc list-inside text-sm">
+                                    <ul className="list-none list-inside text-sm">
                                         {professor.subjects?.slice(0).map((subject: Subject) => (
                                             <li className='dark:text-white' key={subject._id}>
                                                 {subject.name}
@@ -325,11 +341,11 @@ const ProfessorDetail = () => {
                         <div className="space-y-4">
                             {/* Mapeo de reseñas aplanadas */}
                             {ratings.map((rating: RatingType) => (
-                                <div key={rating._id} className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
+                                <div key={rating._id} className="bg-white dark:bg-card flex flex-col gap-6 p-6 rounded-xl border border-gray-200 dark:border-border shadow-sm">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div className='flex gap-3 justify-between items-center'>
                                             {renderCommentStars(rating.general)}
-                                            <p className="text-sm text-gray-500 dark:text-gray-300/70 mt-1">
+                                            <p className="text-xs font-normal dark:text-foreground px-2 py-0.5 border border-gray-200 dark:border-border rounded-full">
                                                 {rating.subject?.name || 'Materia no encontrada'}
                                             </p>
                                         </div>
@@ -342,19 +358,21 @@ const ProfessorDetail = () => {
                                             })}
                                         </div>
                                     </div>
+
                                     <p className="text-gray-700 dark:text-white mb-4">{rating.comment}</p>
-                                    <div className={`flex items-center ${rating.likes.length > 0 ? 'gap-4' : 'gap-2'}`}>
+
+                                    <div className={`flex items-center pt-4 border-t border-gray-200 dark:border-border ${rating.likes.length > 0 ? 'gap-4' : 'gap-2'}`}>
                                         <LikeButton
                                             isLiked={rating.likes.includes(userId)}
                                             likeCount={rating.likes.length}
                                             onClick={() => handleLike(rating._id)}
                                         />
 
-                                        <div className="border-l border-gray-200 dark:border-[#979797] pl-5">
-                                            <div className="flex items-center gap-2">
-                                                <a href="#" className="text-sm text-gray-500 dark:text-[#979797] hover:cursor-pointer" onClick={(e) => { e.preventDefault(); openReportModal(rating); }}>Reportar</a>
-                                            </div>
-                                        </div>
+                                        <a href="#" className="flex items-center gap-2 text-sm text-gray-500 dark:text-[#979797] hover:cursor-pointer" onClick={(e) => { e.preventDefault(); openReportModal(rating); }}>
+                                            <FaRegFlag className='text-gray-500 dark:text-[#979797] h-4 w-4' />
+
+                                            Reportar
+                                        </a>
                                     </div>
                                 </div>
                             ))}
