@@ -141,9 +141,6 @@ const SubjectsPage = () => {
         <div 
             ref={subjectsContainerRef}
             className="bg-white dark:bg-[#202024] rounded-lg border border-gray-200 dark:border-[#202024] shadow-sm overflow-hidden transition-all"
-            style={{ 
-            minHeight: containerHeight ? `${containerHeight}px` : '300px'
-            }}
         >
             <ul className="divide-y divide-gray-200 dark:divide-[#383939]">
             {/* 1. Lista de Materias (Directo de la API) */}
