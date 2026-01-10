@@ -197,7 +197,7 @@ const Login: React.FC = () => {
             </main>
 
             {/* Footer */}
-            <footer className="bg-white dark:bg-[#0A0A0A] border-t border-gray-200 dark:border-[#202024] py-4">
+            <footer className="bg-white dark:bg-[#0A0A0A] border-t border-gray-200 dark:border-[#202024] py-6 mt-20">
                 <div className="container mx-auto px-4 text-center text-sm text-gray-500 dark:text-white">
                     <p>&copy; ProfeScore - {new Date().getFullYear()}</p>
                 </div>

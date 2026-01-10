@@ -8,7 +8,7 @@ const AdminWithHeader = () => {
       <main>
         <Outlet />
       </main>
-      <footer className="bg-white dark:bg-[#0A0A0A] border-t border-gray-200 dark:border-[#202024]">
+      <footer className="bg-white dark:bg-[#0A0A0A] border-t border-gray-200 dark:border-[#202024] py-6 mt-20">
         <div className='container mx-auto px-4 py-3 dark:text-white flex items-center justify-between'>
           <p>&copy; ProfeScore - {new Date().getFullYear()}</p>
 
