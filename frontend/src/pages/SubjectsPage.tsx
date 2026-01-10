@@ -41,7 +41,6 @@ const SubjectsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const subjectsContainerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState<number | null>(null);
 
   // 1. DEBOUNCE: Esperar a que el usuario termine de escribir para pedir datos
   useEffect(() => {
@@ -94,13 +93,6 @@ const SubjectsPage = () => {
       }
     };
   }, []);
-
-  // Altura del contenedor
-  useEffect(() => {
-    if (!subjectsLoading && !professorsLoading && subjectsContainerRef.current) {
-      setContainerHeight(subjectsContainerRef.current.offsetHeight);
-    }
-  }, [subjectsLoading, professorsLoading, subjects, professors]);
 
   const isLoading = subjectsLoading || (debouncedSearch.length > 0 && professorsLoading);
 
